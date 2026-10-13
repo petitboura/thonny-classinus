@@ -27,20 +27,39 @@ def _coffre():
         return None
 
 
-def lire():
+def _lire_coffre():
     coffre = _coffre()
-    if coffre is not None:
-        try:
-            brut = coffre.get_password(SERVICE, UTILISATEUR)
-            if brut:
-                return json.loads(brut)
-        except Exception:
-            pass
+    if coffre is None:
+        return None
+    try:
+        brut = coffre.get_password(SERVICE, UTILISATEUR)
+        return json.loads(brut) if brut else None
+    except Exception:
+        return None
+
+
+def _lire_fichier():
     try:
         with open(_fichier(), encoding="utf-8") as f:
             return json.load(f)
     except (OSError, ValueError):
         return None
+
+
+def lire():
+    """Le contenu qui porte la session s'il y en a un, sinon ce qui reste (identifiants de client)."""
+    trouves = [d for d in (_lire_coffre(), _lire_fichier()) if d]
+    for donnees in trouves:
+        if donnees.get("access_token"):
+            return donnees
+    return trouves[0] if trouves else None
+
+
+def _vider_coffre(coffre):
+    try:
+        coffre.delete_password(SERVICE, UTILISATEUR)
+    except Exception:
+        pass
 
 
 def ecrire(donnees):
@@ -49,10 +68,14 @@ def ecrire(donnees):
     if coffre is not None:
         try:
             coffre.set_password(SERVICE, UTILISATEUR, brut)
-            _supprimer_fichier()
-            return
+            # Le coffre de Windows refuse ou coupe les contenus trop gros : on relit pour verifier.
+            if coffre.get_password(SERVICE, UTILISATEUR) == brut:
+                _supprimer_fichier()
+                return
         except Exception:
             pass
+        # Ecriture ratee : une ancienne entree du coffre ne doit pas masquer le fichier.
+        _vider_coffre(coffre)
     chemin = _fichier()
     fd = os.open(chemin, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w", encoding="utf-8") as f:
