@@ -6,7 +6,7 @@ Chaque action est declenchee par un clic de l'eleve ; l'insertion demande en plu
 
 import re
 
-from thonny import get_workbench
+from thonny import get_runner, get_workbench
 
 from .erreurs import ErreurClassinus
 
@@ -51,7 +51,7 @@ def inserer(code):
 
 
 def lancer_script():
-    runner = get_workbench().get_runner()
+    runner = get_runner()
     if runner is None or not runner.cmd_run_current_script_enabled():
         raise ErreurClassinus("err_lancer_indisponible")
     runner.cmd_run_current_script()

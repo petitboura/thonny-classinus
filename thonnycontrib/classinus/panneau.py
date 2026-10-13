@@ -224,8 +224,7 @@ class VueClassinus(ttk.Frame):
         self._occupe = True
         self._maj_boutons()
         self._echange = EchangeEnCours(self._file)
-        envoye = message if ctx is None else contexte.construire_message(message, ctx)
-        self._echange.demarrer(envoye, list(self._historique))
+        self._echange.demarrer(contexte.construire_message(message, ctx), list(self._historique))
 
     # ---------- actions dans Thonny (toujours sur clic de l'eleve) ----------
     def _inserer(self):

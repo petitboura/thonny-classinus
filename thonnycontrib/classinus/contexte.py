@@ -9,6 +9,7 @@ import os
 from thonny import get_workbench
 
 from . import reglages
+from .textes import t
 
 _sortie = ""
 _erreur = ""
@@ -34,6 +35,7 @@ def installer():
     wb = get_workbench()
     wb.bind("ProgramOutput", _sur_sortie, True)
     wb.bind("BackendRestart", _sur_redemarrage, True)
+    wb.bind("ToplevelResponse", _sur_fin_execution, True)
 
 
 def _limite(cle, repli):
@@ -47,9 +49,19 @@ def _sur_sortie(msg):
     global _sortie, _erreur
     donnee = msg.get("data", "") or ""
     limite = _limite("max_sortie", 6000)
-    _sortie = (_sortie + donnee)[-limite:]
     if msg.get("stream_name", "stdout") == "stderr":
         _erreur = (_erreur + donnee)[-limite:]
+    else:
+        _sortie = (_sortie + donnee)[-limite:]
+
+
+def _sur_fin_execution(msg):
+    """Thonny envoie le texte d'une erreur Python ici, pas dans la sortie normale."""
+    global _erreur
+    exception = msg.get("user_exception")
+    if exception:
+        texte = "".join(element[0] for element in exception.get("items", []))
+        _erreur = (_erreur + texte)[-_limite("max_sortie", 6000):]
 
 
 def _sur_redemarrage(_msg=None):
@@ -78,13 +90,24 @@ def _bloc(titre, contenu, garder_debut):
     return "%s :\n%s\n%s\n%s\n" % (titre, _CLOTURE, contenu, _CLOTURE)
 
 
-def construire_message(question, ctx):
-    """Le message envoye au serveur : la question de l'eleve précédée de ce qu'il voit dans Thonny."""
-    parties = [
-        "[Contexte Thonny] L'élève utilise l'éditeur Thonny et te montre ce qu'il a sous les yeux. "
-        "Réponds à sa question en t'appuyant sur son code, avec des explications adaptées à un élève "
-        "qui apprend Python."
-    ]
+def _consignes():
+    """Explique a Classinus ou il se trouve et comment repondre (texte dans consignes.txt)."""
+    chemin = os.path.join(os.path.dirname(__file__), "consignes.txt")
+    try:
+        with open(chemin, encoding="utf-8") as f:
+            modele = f.read().strip()
+    except OSError:
+        return ""
+    return modele.format(**{cle: t(cle) for cle in ("envoyer_code", "expliquer_erreur", "inserer", "lancer")})
+
+
+def construire_message(question, ctx=None):
+    """Le message envoye au serveur : les consignes Thonny, ce que l'eleve voit (s'il l'a envoye), sa question."""
+    parties = [_consignes() + "\n"]
+    if ctx is None:
+        parties.append("[Fin des consignes]\n\nQuestion de l'élève : %s" % question)
+        return "\n".join(parties)
+    parties.append("[Ce que l'élève te montre]")
     if ctx.nom:
         parties.append("Fichier : %s" % ctx.nom)
     if ctx.code.strip():
@@ -93,7 +116,7 @@ def construire_message(question, ctx):
         parties.append(_bloc("Partie sélectionnée par l'élève", ctx.selection, True))
     if ctx.erreur:
         parties.append(_bloc("Dernière erreur affichée", ctx.erreur, False))
-    if ctx.sortie and ctx.sortie != ctx.erreur:
+    if ctx.sortie:
         parties.append(_bloc("Ce que le programme a affiché", ctx.sortie, False))
-    parties.append("[Fin du contexte]\n\nQuestion de l'élève : %s" % question)
+    parties.append("[Fin des consignes]\n\nQuestion de l'élève : %s" % question)
     return "\n".join(parties)

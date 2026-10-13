@@ -7,9 +7,13 @@ tapee dans le panneau et une reponse qui s'affiche au fil de l'eau.
 
 Etape 2 : deux boutons, "Envoyer mon code" (fichier ouvert, partie selectionnee,
 derniere erreur et sortie du programme) et "Expliquer cette erreur". Rien ne
-part sans un clic de l'eleve. Le code est ajoute au message envoye a Classinus,
-dans un bloc "Contexte Thonny" ; les tailles maximales sont dans `defauts.json`
-(`max_code`, `max_sortie`).
+part sans un clic de l'eleve. Le code est ajoute au message envoye a Classinus ;
+les tailles maximales sont dans `defauts.json` (`max_code`, `max_sortie`).
+
+Chaque message envoye commence par les consignes de `consignes.txt` : elles
+disent a Classinus qu'il est dans Thonny, ce que font les boutons et comment
+repondre (texte simple, code Python dans un bloc python). Modifier ce fichier
+change le comportement de Classinus dans Thonny, sans toucher au code.
 
 Etape 3 : "Inserer dans l'editeur" propose le bloc de code Python de la derniere
 reponse (l'eleve valide, puis Ctrl+Z annule) et "Lancer le script" lance le
