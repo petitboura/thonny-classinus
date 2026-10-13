@@ -3,9 +3,9 @@
 import queue
 import threading
 import tkinter as tk
-from tkinter import ttk
+from tkinter import messagebox, ttk
 
-from . import connexion, mise_en_forme
+from . import connexion, contexte, editeur, mise_en_forme
 from .erreurs import ErreurClassinus
 from .flux import EchangeEnCours
 from .textes import t
@@ -21,6 +21,7 @@ class VueClassinus(ttk.Frame):
         self._historique = []
         self._question = ""
         self._reponse = ""
+        self._blocs = []
         self._statut_outil = ""
         self._occupe = False
         self._connexion_en_cours = False
@@ -60,8 +61,18 @@ class VueClassinus(ttk.Frame):
         self._lbl_statut = ttk.Label(self, text="", foreground="#666666")
         self._lbl_statut.grid(row=2, column=0, sticky="w", padx=8)
 
+        actions = ttk.Frame(self)
+        actions.grid(row=3, column=0, sticky="ew", padx=6, pady=(2, 0))
+        actions.columnconfigure((0, 1), weight=1, uniform="actions")
+        self._btn_code = ttk.Button(actions, command=self._envoyer_code)
+        self._btn_erreur = ttk.Button(actions, command=self._expliquer_erreur)
+        self._btn_inserer = ttk.Button(actions, command=self._inserer)
+        self._btn_lancer = ttk.Button(actions, command=self._lancer)
+        for i, bouton in enumerate((self._btn_code, self._btn_erreur, self._btn_inserer, self._btn_lancer)):
+            bouton.grid(row=i // 2, column=i % 2, sticky="ew", padx=1, pady=1)
+
         bas = ttk.Frame(self)
-        bas.grid(row=3, column=0, sticky="ew", padx=6, pady=(2, 6))
+        bas.grid(row=4, column=0, sticky="ew", padx=6, pady=(2, 6))
         bas.columnconfigure(0, weight=1)
         self._saisie = tk.Text(bas, height=3, width=30, wrap="word", padx=4, pady=4)
         self._saisie.grid(row=0, column=0, sticky="ew")
@@ -110,6 +121,11 @@ class VueClassinus(ttk.Frame):
 
     def _maj_boutons(self):
         self._btn_envoyer.configure(text=t("arreter") if self._occupe else t("envoyer"))
+        libre = "disabled" if self._occupe else "normal"
+        self._btn_code.configure(text=t("envoyer_code"), state=libre)
+        self._btn_erreur.configure(text=t("expliquer_erreur"), state=libre)
+        self._btn_lancer.configure(text=t("lancer"), state=libre)
+        self._btn_inserer.configure(text=t("inserer"), state="normal" if self._blocs and not self._occupe else "disabled")
         self._btn_connexion.configure(
             text=t("se_deconnecter") if connexion.est_connecte() else t("se_connecter"),
             state="disabled" if self._occupe else "normal",
@@ -167,25 +183,78 @@ class VueClassinus(ttk.Frame):
             self._envoyer()
 
     def _envoyer(self):
-        message = self._texte_saisi()
-        if not message:
+        question = self._texte_saisi()
+        if question:
+            self._lancer_echange(question, None, True)
+
+    def _envoyer_code(self):
+        ctx = contexte.lire()
+        if not ctx.a_du_code():
+            self._ecrire(t("aucun_code") + "\n", "info")
             return
+        question = self._texte_saisi()
+        self._lancer_echange(question or t("question_code"), ctx, bool(question))
+
+    def _expliquer_erreur(self):
+        ctx = contexte.lire()
+        if not ctx.erreur:
+            self._ecrire(t("aucune_erreur") + "\n", "info")
+            return
+        self._lancer_echange(t("question_erreur"), ctx, False)
+
+    def _lancer_echange(self, message, ctx, vider_saisie):
         if not connexion.est_connecte():
             self._ecrire(t("err_connexion_requise") + "\n", "erreur")
             return
-        self._saisie.delete("1.0", "end")
+        if vider_saisie:
+            self._saisie.delete("1.0", "end")
         self._question = message
         self._reponse = ""
+        self._blocs = []
         self._statut_outil = ""
         self._ecrire("\n" + t("toi") + "\n", "qui")
         self._ecrire(message + "\n", "utilisateur")
+        if ctx is not None:
+            self._ecrire(t("code_envoye") % (ctx.nom or t("sans_nom")) + "\n", "info")
         self._ecrire(t("classinus") + "\n", "qui")
         self._historique_txt.mark_set("debut_reponse", "end-1c")
         self._historique_txt.mark_gravity("debut_reponse", "left")
         self._occupe = True
         self._maj_boutons()
         self._echange = EchangeEnCours(self._file)
-        self._echange.demarrer(message, list(self._historique))
+        envoye = message if ctx is None else contexte.construire_message(message, ctx)
+        self._echange.demarrer(envoye, list(self._historique))
+
+    # ---------- actions dans Thonny (toujours sur clic de l'eleve) ----------
+    def _inserer(self):
+        if len(self._blocs) == 1:
+            self._confirmer_insertion(self._blocs[0])
+        elif self._blocs:
+            menu = tk.Menu(self, tearoff=False)
+            for i, bloc in enumerate(self._blocs, 1):
+                premiere = bloc.strip().split("\n")[0][:40]
+                menu.add_command(label="%s : %s" % (t("bloc_n") % i, premiere), command=lambda b=bloc: self._confirmer_insertion(b))
+            menu.tk_popup(self._btn_inserer.winfo_rootx(), self._btn_inserer.winfo_rooty() + self._btn_inserer.winfo_height())
+
+    def _confirmer_insertion(self, code):
+        lignes = code.split("\n")
+        apercu = "\n".join(lignes[:12]) + ("\n..." if len(lignes) > 12 else "")
+        question = t("inserer_question") % apercu
+        if editeur.a_selection():
+            question += "\n\n" + t("inserer_remplace")
+        if not messagebox.askyesno(t("inserer_titre"), question, parent=self):
+            return
+        try:
+            editeur.inserer(code)
+            self._ecrire(t("inserer_ok") + "\n", "info")
+        except ErreurClassinus as e:
+            self._ecrire(t(e.cle_texte) + "\n", "erreur")
+
+    def _lancer(self):
+        try:
+            editeur.lancer_script()
+        except ErreurClassinus as e:
+            self._ecrire(t(e.cle_texte) + "\n", "erreur")
 
     def _arreter(self):
         if self._echange is not None:
@@ -198,6 +267,7 @@ class VueClassinus(ttk.Frame):
         self._occupe = False
         self._statut_outil = ""
         if self._reponse:
+            self._blocs = editeur.extraire_blocs(self._reponse)
             self._mettre_en_forme_reponse()
             self._historique.append({"role": "user", "content": self._question})
             self._historique.append({"role": "assistant", "content": self._reponse})

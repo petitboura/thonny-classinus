@@ -3,5 +3,7 @@
   "supabase_url": "https://ljrbwwmiainrjirymmak.supabase.co",
   "agent_id": "clovis",
   "scope": "openid profile email",
-  "port_retour": 47653
+  "port_retour": 47653,
+  "max_code": 20000,
+  "max_sortie": 6000
 }
