@@ -1,0 +1,7 @@
+{
+  "backend_url": "",
+  "supabase_url": "https://ljrbwwmiainrjirymmak.supabase.co",
+  "agent_id": "clovis",
+  "scope": "openid profile email",
+  "port_retour": 47653
+}
