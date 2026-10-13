@@ -11,7 +11,7 @@ import threading
 import urllib.error
 import urllib.request
 
-from . import connexion, reglages
+from . import connexion, identite, reglages
 from .erreurs import ErreurClassinus
 
 
@@ -54,6 +54,7 @@ class EchangeEnCours:
                 headers={
                     "Content-Type": "application/json",
                     "Accept": "text/event-stream",
+                    "User-Agent": identite.agent_utilisateur(),
                     "Authorization": "Bearer " + connexion.jeton_valide(),
                 },
             )
@@ -122,7 +123,10 @@ def _prevenir_arret():
             base + "/api/chat/arreter",
             data=b"",
             method="POST",
-            headers={"Authorization": "Bearer " + connexion.jeton_valide()},
+            headers={
+                "Authorization": "Bearer " + connexion.jeton_valide(),
+                "User-Agent": identite.agent_utilisateur(),
+            },
         )
         urllib.request.urlopen(req, timeout=10).close()
     except Exception:

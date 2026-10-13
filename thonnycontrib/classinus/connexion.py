@@ -17,7 +17,7 @@ import urllib.request
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from . import jeton, reglages
+from . import identite, jeton, reglages
 from .erreurs import ErreurClassinus
 from .textes import t
 
@@ -27,7 +27,7 @@ DELAI_VALIDATION = 180
 
 def _requete_json(url, donnees=None, formulaire=None):
     corps = None
-    entetes = {"Accept": "application/json"}
+    entetes = {"Accept": "application/json", "User-Agent": identite.agent_utilisateur()}
     if donnees is not None:
         corps = json.dumps(donnees).encode("utf-8")
         entetes["Content-Type"] = "application/json"
