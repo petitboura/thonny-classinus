@@ -1,5 +1,5 @@
 {
-  "backend_url": "",
+  "backend_url": "https://api.classinus.com",
   "supabase_url": "https://ljrbwwmiainrjirymmak.supabase.co",
   "agent_id": "clovis",
   "scope": "openid profile email",
