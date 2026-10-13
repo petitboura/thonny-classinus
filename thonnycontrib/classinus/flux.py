@@ -60,16 +60,16 @@ class EchangeEnCours:
             try:
                 self._reponse = urllib.request.urlopen(req, timeout=90)
             except urllib.error.HTTPError as e:
-                raise ErreurClassinus(_cle_pour_code(e.code))
-            except (urllib.error.URLError, OSError):
-                raise ErreurClassinus("err_reseau")
+                raise ErreurClassinus(_cle_pour_code(e.code), "HTTP %s" % e.code)
+            except (urllib.error.URLError, OSError) as e:
+                raise ErreurClassinus("err_reseau", _resume(getattr(e, "reason", None) or e))
             self._lire_flux()
         except ErreurClassinus as e:
             if not self._arret.is_set():
-                self.file.put(("erreur", e.cle_texte))
-        except Exception:
+                self.file.put(("erreur", (e.cle_texte, e.detail)))
+        except Exception as e:
             if not self._arret.is_set():
-                self.file.put(("erreur", "err_reseau"))
+                self.file.put(("erreur", ("err_reseau", _resume(e))))
         finally:
             self.file.put(("fin", None))
 
@@ -97,6 +97,11 @@ class EchangeEnCours:
             elif kind == "confirmation_requise":
                 self.file.put(("confirmation", None))
                 return
+
+
+def _resume(erreur):
+    """Nature courte de la panne, pour aider a comprendre sans ouvrir un journal."""
+    return ("%s: %s" % (type(erreur).__name__, erreur))[:160]
 
 
 def _cle_pour_code(code):

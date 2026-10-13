@@ -22,6 +22,7 @@ class VueClassinus(ttk.Frame):
         self._question = ""
         self._reponse = ""
         self._blocs = []
+        self._erreur_affichee = False
         self._statut_outil = ""
         self._occupe = False
         self._connexion_en_cours = False
@@ -211,6 +212,7 @@ class VueClassinus(ttk.Frame):
         self._question = message
         self._reponse = ""
         self._blocs = []
+        self._erreur_affichee = False
         self._statut_outil = ""
         self._ecrire("\n" + t("toi") + "\n", "qui")
         self._ecrire(message + "\n", "utilisateur")
@@ -273,6 +275,8 @@ class VueClassinus(ttk.Frame):
             self._historique.append({"role": "assistant", "content": self._reponse})
         if arrete:
             self._ecrire("\n" + t("arrete") + "\n", "info")
+        elif not self._reponse and not self._erreur_affichee:
+            self._ecrire("\n" + t("err_aucune_reponse") + "\n", "erreur")
         self._reponse = ""
         self._echange = None
         self._maj_etat_connexion()
@@ -305,10 +309,13 @@ class VueClassinus(ttk.Frame):
         elif kind == "statut_fin":
             self._statut_outil = ""
         elif kind == "confirmation":
+            self._erreur_affichee = True
             self._ecrire("\n" + t("err_confirmation") + "\n", "info")
         elif kind == "erreur":
-            self._ecrire("\n" + t(valeur) + "\n", "erreur")
-            if valeur in ("err_session_expiree", "err_connexion_requise"):
+            cle, detail = valeur
+            self._erreur_affichee = True
+            self._ecrire("\n" + t(cle) + (" " + t("detail_technique") % detail if detail else "") + "\n", "erreur")
+            if cle in ("err_session_expiree", "err_connexion_requise"):
                 self._maj_etat_connexion()
         elif kind == "fin":
             self._terminer()
