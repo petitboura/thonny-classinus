@@ -15,7 +15,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import webbrowser
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import jeton, reglages
 from .erreurs import ErreurClassinus
@@ -67,6 +67,8 @@ def _pkce():
 class _Retour(BaseHTTPRequestHandler):
     resultat = None
     etat_attendu = ""
+    # Les navigateurs ouvrent parfois une connexion sans rien envoyer : on la lache vite.
+    timeout = 10
 
     def do_GET(self):
         url = urllib.parse.urlparse(self.path)
@@ -95,11 +97,14 @@ class _Retour(BaseHTTPRequestHandler):
 
 
 def _ouvrir_serveur_retour(port_prefere, etat):
-    """Petit serveur local, uniquement joignable depuis cet ordinateur."""
+    """Petit serveur local, uniquement joignable depuis cet ordinateur.
+
+    Une connexion par fil, pour qu'une connexion vide du navigateur ne bloque pas la vraie reponse.
+    """
     classe = type("RetourLocal", (_Retour,), {"resultat": None, "etat_attendu": etat})
     for port in (port_prefere, 0):
         try:
-            return HTTPServer(("127.0.0.1", port), classe), classe
+            return ThreadingHTTPServer(("127.0.0.1", port), classe), classe
         except OSError:
             continue
     raise ErreurClassinus("err_connexion_echec")
