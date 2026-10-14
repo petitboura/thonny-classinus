@@ -15,9 +15,21 @@ disent a Classinus qu'il est dans Thonny, ce que font les boutons et comment
 repondre (texte simple, code Python dans un bloc python). Modifier ce fichier
 change le comportement de Classinus dans Thonny, sans toucher au code.
 
-Etape 3 : "Inserer dans l'editeur" propose le bloc de code Python de la derniere
-reponse (l'eleve valide, puis Ctrl+Z annule) et "Lancer le script" lance le
-fichier courant.
+Etape 3 : sous chaque bloc de code de la reponse, "Copier", "Inserer" (l'eleve
+valide, puis Ctrl+Z annule) et "Nouvel onglet" (le code s'ouvre dans un onglet
+non enregistre). Le lancement du script reste le bouton vert de Thonny.
+
+Boutons du panneau : "Envoyer mon code", "Corriger mon code", "Expliquer cette
+erreur", "Expliquer ma selection" (envoie seulement la partie selectionnee),
+"Nouvelle conversation" (efface la discussion). Si l'eleve est dans le pas a pas
+du debogueur, la ligne ou il en est est envoyee avec le code.
+
+Affichage : la question de l'eleve a droite, la reponse a gauche. Les couleurs
+du code sont celles du theme de Thonny, les fonds suivent son theme clair ou
+sombre. Les liens `[texte](https://...)` sont cliquables, le vrai site est
+affiche a cote du texte et une fenetre de confirmation l'annonce avant
+d'ouvrir le navigateur (seulement http et https). Un passage "ligne 7" dans
+une reponse est cliquable et surligne la ligne dans l'editeur.
 
 Les adresses (serveur Classinus, service de connexion) ne sont jamais ecrites
 dans le code : elles viennent de `defauts.json`, de la page de reglages

@@ -1,16 +1,30 @@
-"""Panneau Classinus dans Thonny : historique, zone de saisie, envoyer / arreter."""
+"""Panneau Classinus dans Thonny : conversation, boutons d'aide, zone de saisie."""
 
 import queue
 import threading
 import tkinter as tk
+import tkinter.font as tkfont
+import webbrowser
 from tkinter import messagebox, ttk
 
-from . import connexion, contexte, editeur, mise_en_forme
+from . import adresses, connexion, contexte, editeur, mise_en_forme
 from .erreurs import ErreurClassinus
 from .flux import EchangeEnCours
 from .textes import t
 
-IMAGES_ATTENTE = "\u280b\u2819\u2839\u2838\u283c\u2834\u2826\u2827\u2807\u280f"
+IMAGES_ATTENTE = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+STYLE_BOUTON = "Classinus.TButton"
+DUREE_COPIE_MS = 1500
+LONGUEUR_APERCU_ADRESSE = 200
+
+
+def _curseur_lien():
+    try:
+        from thonny.ui_utils import get_hyperlink_cursor
+
+        return get_hyperlink_cursor()
+    except Exception:
+        return "hand2"
 
 
 class VueClassinus(ttk.Frame):
@@ -21,13 +35,13 @@ class VueClassinus(ttk.Frame):
         self._historique = []
         self._question = ""
         self._reponse = ""
-        self._blocs = []
         self._erreur_affichee = False
         self._statut_outil = ""
         self._occupe = False
         self._connexion_en_cours = False
         self._annule_connexion = False
         self._image = 0
+        self._colonnes_actions = 0
         self._construire()
         self._maj_etat_connexion()
         self.after(40, self._lire_file)
@@ -35,6 +49,12 @@ class VueClassinus(ttk.Frame):
 
     # ---------- construction ----------
     def _construire(self):
+        police_petite = tkfont.nametofont("TkDefaultFont").copy()
+        taille = police_petite.cget("size")
+        police_petite.configure(size=taille + 1 if taille < 0 else max(7, taille - 1))
+        self._police_petite = police_petite
+        ttk.Style(self).configure(STYLE_BOUTON, padding=(4, 1), font=police_petite)
+
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
         haut = ttk.Frame(self)
@@ -42,7 +62,7 @@ class VueClassinus(ttk.Frame):
         haut.columnconfigure(0, weight=1)
         self._lbl_etat = ttk.Label(haut, text="")
         self._lbl_etat.grid(row=0, column=0, sticky="w")
-        self._btn_connexion = ttk.Button(haut, command=self._basculer_connexion)
+        self._btn_connexion = ttk.Button(haut, style=STYLE_BOUTON, command=self._basculer_connexion)
         self._btn_connexion.grid(row=0, column=1, sticky="e")
 
         zone = ttk.Frame(self)
@@ -54,36 +74,56 @@ class VueClassinus(ttk.Frame):
         self._historique_txt.configure(yscrollcommand=defil.set)
         self._historique_txt.grid(row=0, column=0, sticky="nsew")
         defil.grid(row=0, column=1, sticky="ns")
-        mise_en_forme.preparer_tags(self._historique_txt)
-        self._historique_txt.tag_configure("qui", font=self._historique_txt._polices_classinus[0], spacing1=8)
-        self._historique_txt.tag_configure("erreur", foreground="#b00020")
-        self._historique_txt.tag_configure("info", foreground="#666666")
+        mise_en_forme.preparer_tags(
+            self._historique_txt,
+            ouvrir_lien=self._ouvrir_lien,
+            aller_ligne=self._aller_ligne,
+            curseur_lien=_curseur_lien(),
+        )
 
         self._lbl_statut = ttk.Label(self, text="", foreground="#666666")
         self._lbl_statut.grid(row=2, column=0, sticky="w", padx=8)
 
-        actions = ttk.Frame(self)
-        actions.grid(row=3, column=0, sticky="ew", padx=6, pady=(2, 0))
-        actions.columnconfigure((0, 1), weight=1, uniform="actions")
-        self._btn_code = ttk.Button(actions, command=self._envoyer_code)
-        self._btn_erreur = ttk.Button(actions, command=self._expliquer_erreur)
-        self._btn_inserer = ttk.Button(actions, command=self._inserer)
-        self._btn_lancer = ttk.Button(actions, command=self._lancer)
-        for i, bouton in enumerate((self._btn_code, self._btn_erreur, self._btn_inserer, self._btn_lancer)):
-            bouton.grid(row=i // 2, column=i % 2, sticky="ew", padx=1, pady=1)
+        self._actions = ttk.Frame(self)
+        self._actions.grid(row=3, column=0, sticky="ew", padx=6, pady=(2, 0))
+        self._boutons_action = [
+            ttk.Button(self._actions, style=STYLE_BOUTON, command=commande)
+            for commande in (
+                self._envoyer_code,
+                self._corriger_code,
+                self._expliquer_erreur,
+                self._expliquer_selection,
+                self._nouvelle_conversation,
+            )
+        ]
+        (self._btn_code, self._btn_correction, self._btn_erreur, self._btn_selection, self._btn_nouvelle) = self._boutons_action
+        self._actions.bind("<Configure>", self._reorganiser_actions)
 
         bas = ttk.Frame(self)
         bas.grid(row=4, column=0, sticky="ew", padx=6, pady=(2, 6))
         bas.columnconfigure(0, weight=1)
         self._saisie = tk.Text(bas, height=3, width=30, wrap="word", padx=4, pady=4)
         self._saisie.grid(row=0, column=0, sticky="ew")
-        self._btn_envoyer = ttk.Button(bas, command=self._envoyer_ou_arreter)
+        self._btn_envoyer = ttk.Button(bas, style=STYLE_BOUTON, command=self._envoyer_ou_arreter)
         self._btn_envoyer.grid(row=0, column=1, sticky="ns", padx=(6, 0))
         self._saisie.bind("<Return>", self._sur_entree)
         self._saisie.bind("<FocusIn>", self._saisie_focus)
         self._saisie.bind("<FocusOut>", self._saisie_perd_focus)
         self._afficher_placeholder()
         self._maj_boutons()
+
+    def _reorganiser_actions(self, _evt=None):
+        """Les boutons se rangent sur autant de colonnes que la largeur du panneau le permet."""
+        largeur = self._actions.winfo_width()
+        pas = max(b.winfo_reqwidth() for b in self._boutons_action) + 4
+        colonnes = max(1, min(len(self._boutons_action), largeur // pas)) if largeur > 1 else 2
+        if colonnes == self._colonnes_actions:
+            return
+        self._colonnes_actions = colonnes
+        for i in range(len(self._boutons_action)):
+            self._actions.columnconfigure(i, weight=1 if i < colonnes else 0, uniform="actions" if i < colonnes else "")
+        for i, bouton in enumerate(self._boutons_action):
+            bouton.grid(row=i // colonnes, column=i % colonnes, sticky="ew", padx=1, pady=1)
 
     # ---------- saisie ----------
     def _afficher_placeholder(self):
@@ -123,14 +163,16 @@ class VueClassinus(ttk.Frame):
     def _maj_boutons(self):
         self._btn_envoyer.configure(text=t("arreter") if self._occupe else t("envoyer"))
         libre = "disabled" if self._occupe else "normal"
-        self._btn_code.configure(text=t("envoyer_code"), state=libre)
-        self._btn_erreur.configure(text=t("expliquer_erreur"), state=libre)
-        self._btn_lancer.configure(text=t("lancer"), state=libre)
-        self._btn_inserer.configure(text=t("inserer"), state="normal" if self._blocs and not self._occupe else "disabled")
+        for bouton, cle in zip(
+            self._boutons_action,
+            ("envoyer_code", "corriger_code", "expliquer_erreur", "expliquer_selection", "nouvelle_conversation"),
+        ):
+            bouton.configure(text=t(cle), state=libre)
         self._btn_connexion.configure(
             text=t("se_deconnecter") if connexion.est_connecte() else t("se_connecter"),
             state="disabled" if self._occupe else "normal",
         )
+        self.after_idle(self._reorganiser_actions)
 
     def _maj_etat_connexion(self):
         if self._connexion_en_cours:
@@ -188,22 +230,47 @@ class VueClassinus(ttk.Frame):
         if question:
             self._lancer_echange(question, None, True)
 
-    def _envoyer_code(self):
+    def _avec_code(self):
         ctx = contexte.lire()
         if not ctx.a_du_code():
             self._ecrire(t("aucun_code") + "\n", "info")
-            return
-        question = self._texte_saisi()
-        self._lancer_echange(question or t("question_code"), ctx, bool(question))
+            return None
+        return ctx
+
+    def _envoyer_code(self):
+        ctx = self._avec_code()
+        if ctx is not None:
+            saisi = self._texte_saisi()
+            self._lancer_echange(saisi or t("question_code"), ctx, bool(saisi), saisi or t("envoyer_code"))
+
+    def _corriger_code(self):
+        ctx = self._avec_code()
+        if ctx is not None:
+            saisi = self._texte_saisi()
+            complement = "\n" + saisi if saisi else ""
+            self._lancer_echange(t("question_correction") + complement, ctx, bool(saisi), t("corriger_code") + complement)
 
     def _expliquer_erreur(self):
         ctx = contexte.lire()
         if not ctx.erreur:
             self._ecrire(t("aucune_erreur") + "\n", "info")
             return
-        self._lancer_echange(t("question_erreur"), ctx, False)
+        self._lancer_echange(t("question_erreur"), ctx, False, t("expliquer_erreur"))
 
-    def _lancer_echange(self, message, ctx, vider_saisie):
+    def _expliquer_selection(self):
+        ctx = contexte.lire()
+        if not ctx.selection.strip():
+            self._ecrire(t("aucune_selection") + "\n", "info")
+            return
+        self._lancer_echange(t("question_selection"), ctx.seulement_selection(), False, t("expliquer_selection"))
+
+    def _nouvelle_conversation(self):
+        self._historique = []
+        self._question = ""
+        self._reponse = ""
+        mise_en_forme.vider(self._historique_txt)
+
+    def _lancer_echange(self, message, ctx, vider_saisie, affichage=None):
         if not connexion.est_connecte():
             self._ecrire(t("err_connexion_requise") + "\n", "erreur")
             return
@@ -211,14 +278,12 @@ class VueClassinus(ttk.Frame):
             self._saisie.delete("1.0", "end")
         self._question = message
         self._reponse = ""
-        self._blocs = []
         self._erreur_affichee = False
         self._statut_outil = ""
-        self._ecrire("\n" + t("toi") + "\n", "qui")
-        self._ecrire(message + "\n", "utilisateur")
+        self._ecrire("\n")
+        self._ecrire((affichage or message) + "\n", "utilisateur")
         if ctx is not None:
-            self._ecrire(t("code_envoye") % (ctx.nom or t("sans_nom")) + "\n", "info")
-        self._ecrire(t("classinus") + "\n", "qui")
+            self._ecrire(t("code_envoye") % (ctx.nom or t("sans_nom")) + "\n", "info_droite")
         self._historique_txt.mark_set("debut_reponse", "end-1c")
         self._historique_txt.mark_gravity("debut_reponse", "left")
         self._occupe = True
@@ -227,15 +292,29 @@ class VueClassinus(ttk.Frame):
         self._echange.demarrer(contexte.construire_message(message, ctx), list(self._historique))
 
     # ---------- actions dans Thonny (toujours sur clic de l'eleve) ----------
-    def _inserer(self):
-        if len(self._blocs) == 1:
-            self._confirmer_insertion(self._blocs[0])
-        elif self._blocs:
-            menu = tk.Menu(self, tearoff=False)
-            for i, bloc in enumerate(self._blocs, 1):
-                premiere = bloc.strip().split("\n")[0][:40]
-                menu.add_command(label="%s : %s" % (t("bloc_n") % i, premiere), command=lambda b=bloc: self._confirmer_insertion(b))
-            menu.tk_popup(self._btn_inserer.winfo_rootx(), self._btn_inserer.winfo_rooty() + self._btn_inserer.winfo_height())
+    def _boutons_bloc(self, w, code, langage):
+        """Les boutons sous un bloc de code de la reponse."""
+        cadre = ttk.Frame(w)
+        copier = ttk.Button(cadre, text=t("copier"), style=STYLE_BOUTON)
+        copier.configure(command=lambda: self._copier(code, copier))
+        copier.grid(row=0, column=0, padx=(0, 2))
+        if editeur.est_python(langage, code):
+            ttk.Button(cadre, text=t("inserer"), style=STYLE_BOUTON, command=lambda: self._confirmer_insertion(code)).grid(row=0, column=1, padx=2)
+            ttk.Button(cadre, text=t("nouvel_onglet"), style=STYLE_BOUTON, command=lambda: self._ouvrir_onglet(code)).grid(row=0, column=2, padx=2)
+        return cadre
+
+    def _copier(self, code, bouton):
+        self.clipboard_clear()
+        self.clipboard_append(code)
+        bouton.configure(text=t("copie"))
+
+        def restaurer():
+            try:
+                bouton.configure(text=t("copier"))
+            except tk.TclError:
+                pass  # la conversation a ete effacee entre temps
+
+        self.after(DUREE_COPIE_MS, restaurer)
 
     def _confirmer_insertion(self, code):
         lignes = code.split("\n")
@@ -251,11 +330,27 @@ class VueClassinus(ttk.Frame):
         except ErreurClassinus as e:
             self._ecrire(t(e.cle_texte) + "\n", "erreur")
 
-    def _lancer(self):
+    def _ouvrir_onglet(self, code):
         try:
-            editeur.lancer_script()
+            editeur.ouvrir_dans_onglet(code)
+            self._ecrire(t("onglet_ok") + "\n", "info")
         except ErreurClassinus as e:
             self._ecrire(t(e.cle_texte) + "\n", "erreur")
+
+    def _aller_ligne(self, numero):
+        try:
+            editeur.surligner_ligne(numero)
+        except ErreurClassinus as e:
+            self._ecrire(t(e.cle_texte) + "\n", "erreur")
+
+    def _ouvrir_lien(self, adresse):
+        """Annonce le vrai site et n'ouvre le navigateur qu'apres accord de l'eleve."""
+        site = adresses.domaine(adresse)
+        if site is None:
+            return
+        apercu = adresse if len(adresse) <= LONGUEUR_APERCU_ADRESSE else adresse[: LONGUEUR_APERCU_ADRESSE - 3] + "..."
+        if messagebox.askyesno(t("lien_titre"), t("lien_question") % (site, apercu), parent=self):
+            webbrowser.open(adresse)
 
     def _arreter(self):
         if self._echange is not None:
@@ -268,7 +363,6 @@ class VueClassinus(ttk.Frame):
         self._occupe = False
         self._statut_outil = ""
         if self._reponse:
-            self._blocs = editeur.extraire_blocs(self._reponse)
             self._mettre_en_forme_reponse()
             self._historique.append({"role": "user", "content": self._question})
             self._historique.append({"role": "assistant", "content": self._reponse})
@@ -284,7 +378,7 @@ class VueClassinus(ttk.Frame):
         w = self._historique_txt
         w.configure(state="normal")
         w.delete("debut_reponse", "end-1c")
-        mise_en_forme.inserer(w, self._reponse, "assistant")
+        mise_en_forme.inserer(w, self._reponse, "assistant", self._boutons_bloc)
         w.configure(state="disabled")
         w.see(tk.END)
 

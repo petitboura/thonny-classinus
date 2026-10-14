@@ -1,26 +1,33 @@
-"""Actions dans Thonny : trouver le code propose, l'inserer dans l'editeur, lancer le script.
+"""Actions dans Thonny : inserer du code, ouvrir du code dans un onglet, montrer une ligne.
 
 Chaque action est declenchee par un clic de l'eleve ; l'insertion demande en plus sa validation
 (voir panneau.py) et se defait avec Annuler (Ctrl+Z).
 """
 
-import re
+import ast
+import tkinter as tk
 
-from thonny import get_runner, get_workbench
+from thonny import get_workbench
 
+from . import couleurs
 from .erreurs import ErreurClassinus
 
-_BLOC = re.compile(r"^[ \t]*```([^\n]*)\n(.*?)^[ \t]*```[ \t]*$", re.S | re.M)
-_LANGAGES_PYTHON = ("", "python", "py", "python3")
+_TAG_LIGNE = "classinus_ligne"
+DUREE_SURLIGNAGE_MS = 8000
+_LANGAGES_PYTHON = ("python", "py", "python3")
 
 
-def extraire_blocs(reponse):
-    """Les blocs de code Python d'une reponse, dans l'ordre."""
-    blocs = []
-    for langage, code in _BLOC.findall(reponse):
-        if langage.strip().lower() in _LANGAGES_PYTHON and code.strip():
-            blocs.append(code.rstrip("\n"))
-    return blocs
+def est_python(langage, code=""):
+    """Vrai pour un bloc python ; sans langage indique, vrai si le code est du Python valide."""
+    if langage in _LANGAGES_PYTHON:
+        return True
+    if langage:
+        return False
+    try:
+        ast.parse(code)
+    except Exception:
+        return False
+    return True
 
 
 def _editeur_courant():
@@ -50,8 +57,36 @@ def inserer(code):
     texte.focus_set()
 
 
-def lancer_script():
-    runner = get_runner()
-    if runner is None or not runner.cmd_run_current_script_enabled():
-        raise ErreurClassinus("err_lancer_indisponible")
-    runner.cmd_run_current_script()
+def ouvrir_dans_onglet(code):
+    """Ouvre `code` dans un nouvel onglet non enregistre : aucun fichier de l'eleve n'est touche."""
+    carnet = get_workbench().get_editor_notebook()
+    carnet.open_new_file()
+    texte = carnet.get_current_editor().get_text_widget()
+    texte.insert("1.0", code + "\n")
+    texte.mark_set("insert", "1.0")
+    texte.see("1.0")
+
+
+def surligner_ligne(numero):
+    """Montre la ligne `numero` du fichier ouvert (surlignage temporaire)."""
+    texte = _editeur_courant().get_text_widget()
+    derniere = int(texte.index("end-1c").split(".")[0])
+    if numero < 1 or numero > derniere:
+        raise ErreurClassinus("err_ligne_introuvable")
+    debut = "%d.0" % numero
+    texte.tag_configure(_TAG_LIGNE, background=couleurs.surlignage(texte))
+    texte.tag_remove(_TAG_LIGNE, "1.0", tk.END)
+    texte.tag_add(_TAG_LIGNE, debut, "%d.0 lineend + 1c" % numero)
+    texte.mark_set("insert", debut)
+    texte.see(debut)
+    ancien = getattr(texte, "_classinus_retrait", None)
+    if ancien is not None:
+        texte.after_cancel(ancien)
+    texte._classinus_retrait = texte.after(DUREE_SURLIGNAGE_MS, lambda: _retirer_surlignage(texte))
+
+
+def _retirer_surlignage(texte):
+    try:
+        texte.tag_remove(_TAG_LIGNE, "1.0", tk.END)
+    except tk.TclError:
+        pass  # l'onglet a ete ferme entre temps
