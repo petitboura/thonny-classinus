@@ -1,15 +1,16 @@
-"""Petites icones des fournisseurs de modeles, dessinees par le plugin lui-meme.
+"""Icones des menus : vrais logos des fournisseurs (voir logos_data.py), et une icone dessinee pour « Auto ».
 
-Ce ne sont pas les logos officiels : une simulation fidele aux couleurs et a la forme generale,
-sans fichier image a telecharger ni a livrer. Chaque icone est calculee point par point puis
-transformee en image PNG, que Tk sait afficher dans un menu ou sur un bouton.
+Pas de fichier image a telecharger : les logos sont dans le paquet. L'icone « Auto » n'a pas de
+logo, elle est calculee point par point puis transformee en image PNG que Tk sait afficher.
 """
 
 import base64
-import math
 import struct
 import tkinter as tk
 import zlib
+from tkinter import ttk
+
+from .logos_data import LOGOS
 
 TAILLE = 16
 SUR_ECHANTILLON = 4  # chaque pixel est calcule sur 4 x 4 points : bords lisses
@@ -26,43 +27,6 @@ def _etoile(x, y, taille):
     return (abs(x) / taille) ** 0.7 + (abs(y) / taille) ** 0.7 <= 1
 
 
-def _melanger(a, b, ratio):
-    return tuple(round(ca + (cb - ca) * ratio) for ca, cb in zip(a, b))
-
-
-def _deepseek(x, y):
-    if not _disque(x, y, 0.95):
-        return None
-    if _disque(x, y, 0.6, -0.05, 0.0) and not _disque(x, y, 0.5, 0.2, -0.05):
-        return BLANC
-    return (77, 107, 254)
-
-
-def _claude(x, y):
-    if not _disque(x, y, 0.95):
-        return None
-    rayon = math.hypot(x, y)
-    angle = math.atan2(y, x)
-    if 0.1 < rayon < 0.72 and abs(math.cos(4 * angle)) > 0.86:
-        return BLANC
-    return (217, 119, 87)
-
-
-def _gpt(x, y):
-    if not _disque(x, y, 0.95):
-        return None
-    hexagone = max(abs(x * math.cos(a) + y * math.sin(a)) for a in (math.pi / 6, math.pi / 2, 5 * math.pi / 6))
-    if 0.4 <= hexagone <= 0.62:
-        return BLANC
-    return (16, 163, 127)
-
-
-def _gemini(x, y):
-    if not _etoile(x, y, 0.95):
-        return None
-    return _melanger((66, 133, 244), (155, 114, 203), (x + y + 2) / 4)
-
-
 def _auto(x, y):
     if not _disque(x, y, 0.95):
         return None
@@ -75,13 +39,7 @@ def _generique(x, y):
     return (122, 130, 150) if _disque(x, y, 0.95) else None
 
 
-FORMES = {
-    "deepseek": _deepseek,
-    "claude": _claude,
-    "gpt": _gpt,
-    "gemini": _gemini,
-    "auto": _auto,
-}
+FORMES = {"auto": _auto}
 
 
 def _png(lignes):
@@ -118,6 +76,16 @@ def _dessiner(forme):
     return _png(lignes)
 
 
+def _theme_sombre(widget):
+    """Vrai si le fond des panneaux de Thonny est sombre (le logo OpenAI est noir : il faut alors le blanc)."""
+    try:
+        fond = ttk.Style(widget).lookup("TFrame", "background") or "#ffffff"
+        rouge, vert, bleu = (c // 257 for c in widget.winfo_rgb(fond))
+        return 0.299 * rouge + 0.587 * vert + 0.114 * bleu < 128
+    except tk.TclError:
+        return False
+
+
 class Icones:
     """Garde les images en vie (Tk les efface sinon) et les cree a la demande."""
 
@@ -126,7 +94,12 @@ class Icones:
         self._images = {}
 
     def obtenir(self, cle):
+        if cle == "gpt" and _theme_sombre(self._widget):
+            cle = "gpt_sombre"
         if cle not in self._images:
-            png = _dessiner(FORMES.get(cle, _generique))
-            self._images[cle] = tk.PhotoImage(master=self._widget, data=base64.b64encode(png))
+            if cle in LOGOS:
+                donnees = LOGOS[cle].encode("ascii")
+            else:
+                donnees = base64.b64encode(_dessiner(FORMES.get(cle, _generique)))
+            self._images[cle] = tk.PhotoImage(master=self._widget, data=donnees)
         return self._images[cle]
