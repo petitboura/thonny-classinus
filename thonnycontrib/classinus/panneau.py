@@ -332,7 +332,7 @@ class VueClassinus(ttk.Frame):
         self._historique_txt.mark_gravity("debut_reponse", "left")
         self._occupe = True
         self._maj_boutons()
-        champs = {"longueur_reponse": self._longueur_courante(), "modele": self._modele_courant()}
+        champs = {"longueur_reponse": self._longueur_courante(), "modele": self._modele_courant(), "message_enregistre": message}
         champs.update(self._fil.champs())
         self._echange = EchangeEnCours(self._file)
         self._echange.demarrer(contexte.construire_message(message, ctx), list(self._historique), champs, chemins)

@@ -62,6 +62,9 @@ class EchangeEnCours:
                 "longueur_reponse": "moyenne",
             }
             donnees.update({cle: valeur for cle, valeur in champs.items() if valeur is not None})
+            if donnees.get("message_enregistre"):
+                # La vraie question (sans les consignes) est celle qui est rangee dans l'historique du site.
+                donnees["message_enregistre"] += "".join(blocs)
             if images:
                 donnees["image_urls"] = images
             corps = json.dumps(donnees).encode("utf-8")
