@@ -24,9 +24,12 @@ class EchangeEnCours:
         self._arret = threading.Event()
         self._reponse = None
 
-    def demarrer(self, message, historique, champs=None, chemins=None):
-        """`champs` : valeurs en plus a envoyer (longueur, modele, fil). `chemins` : fichiers joints."""
-        threading.Thread(target=self._executer, args=(message, historique, dict(champs or {}), list(chemins or [])), daemon=True).start()
+    def demarrer(self, message, historique, champs=None, chemins=None, avant=None):
+        """`champs` : valeurs en plus a envoyer (longueur, modele, effort, fil). `chemins` : fichiers joints.
+        `avant` : petite tache lancee dans le fil de l'echange, juste avant l'envoi (elle ne leve jamais d'erreur)."""
+        threading.Thread(
+            target=self._executer, args=(message, historique, dict(champs or {}), list(chemins or []), avant), daemon=True
+        ).start()
 
     def arreter(self):
         self._arret.set()
@@ -38,8 +41,10 @@ class EchangeEnCours:
                 pass
         threading.Thread(target=_prevenir_arret, daemon=True).start()
 
-    def _executer(self, message, historique, champs, chemins):
+    def _executer(self, message, historique, champs, chemins, avant=None):
         try:
+            if avant is not None:
+                avant()
             base = reglages.lire("backend_url")
             if not base:
                 raise ErreurClassinus("err_adresse_manquante")

@@ -36,7 +36,7 @@ class Fil:
 
 
 def modeles_disponibles():
-    """Les modeles que l'agent propose (liste de {"modele_id", "label"}), vide s'il n'en propose aucun.
+    """Les modeles que l'agent propose (liste de {"modele_id", "label", "distributeur"}), vide s'il n'en propose aucun.
 
     Meme source que le selecteur du site. Appel public, sans connexion. Toute panne donne une
     liste vide : le panneau fonctionne alors avec le modele par defaut, comme avant.
@@ -52,7 +52,11 @@ def modeles_disponibles():
         with urllib.request.urlopen(req, timeout=10) as reponse:
             donnees = json.loads(reponse.read().decode("utf-8"))
         return [
-            {"modele_id": m["modele_id"], "label": m.get("label") or m["modele_id"]}
+            {
+                "modele_id": m["modele_id"],
+                "label": m.get("label") or m["modele_id"],
+                "distributeur": m.get("distributeur") or "",
+            }
             for m in donnees.get("modeles_disponibles") or []
             if isinstance(m, dict) and m.get("modele_id")
         ]

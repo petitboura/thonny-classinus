@@ -48,3 +48,10 @@ ses messages s'enchainent dans le meme fil de l'historique du site
 Tableaux : un tableau Markdown dans la reponse s'affiche en vrai tableau aligne
 (`tableaux.py`), avec une barre de defilement horizontale si le panneau est trop
 etroit. Les consignes Thonny du serveur autorisent les tableaux.
+
+Boutons du bas et du haut du panneau : "Joindre un fichier" (sur sa ligne, texte entier) et
+"Reglages" (longueur de reponse, effort, mode pedagogique, modes ressources, comme sur le site).
+Le bouton "Modele" est en haut du panneau : "Auto" laisse Classinus choisir, et sans choix de
+l'eleve c'est DeepSeek. Les icones des fournisseurs sont dessinees par le plugin (`icones.py`),
+ce ne sont pas les logos officiels. Le mode pedagogique et les modes ressources sont enregistres
+sur le serveur pour la conversation en cours (`parametres_conversation.py`), comme sur le site.

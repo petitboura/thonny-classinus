@@ -8,13 +8,16 @@ import tkinter.font as tkfont
 import webbrowser
 from tkinter import filedialog, messagebox, ttk
 
-from . import adresses, connexion, contexte, conversation, editeur, mise_en_forme, pieces_jointes, reglages
+from . import adresses, connexion, contexte, conversation, editeur, mise_en_forme, parametres_conversation, pieces_jointes
 from .erreurs import ErreurClassinus
 from .flux import EchangeEnCours
+from .menus import BoutonModele, BoutonReglages
 from .textes import t
 
 IMAGES_ATTENTE = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 STYLE_BOUTON = "Classinus.TButton"
+STYLE_BOUTON_LARGE = "Classinus.Large.TButton"
+STYLE_MENU = "Classinus.TMenubutton"
 DUREE_COPIE_MS = 1500
 LONGUEUR_APERCU_ADRESSE = 200
 
@@ -46,7 +49,7 @@ class VueClassinus(ttk.Frame):
         self._fil = conversation.Fil()
         self._pieces = []
         self._texte_pieces = ""
-        self._modeles = []
+        self._en_attente = {}  # choix de la conversation pas encore enregistres sur le serveur
         self._construire()
         self._maj_etat_connexion()
         threading.Thread(target=self._charger_modeles, daemon=True).start()
@@ -59,7 +62,10 @@ class VueClassinus(ttk.Frame):
         taille = police_petite.cget("size")
         police_petite.configure(size=taille + 1 if taille < 0 else max(7, taille - 1))
         self._police_petite = police_petite
-        ttk.Style(self).configure(STYLE_BOUTON, padding=(4, 1), font=police_petite)
+        style = ttk.Style(self)
+        style.configure(STYLE_BOUTON, padding=(4, 1), font=police_petite)
+        style.configure(STYLE_BOUTON_LARGE, padding=(8, 3), font=police_petite)
+        style.configure(STYLE_MENU, padding=(6, 2), font=police_petite)
 
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
@@ -70,6 +76,8 @@ class VueClassinus(ttk.Frame):
         self._lbl_etat.grid(row=0, column=0, sticky="w")
         self._btn_connexion = ttk.Button(haut, style=STYLE_BOUTON, command=self._basculer_connexion)
         self._btn_connexion.grid(row=0, column=1, sticky="e")
+        self._btn_modele = BoutonModele(haut, STYLE_MENU)
+        self._btn_modele.grid(row=1, column=0, columnspan=2, sticky="w", pady=(4, 0))
 
         zone = ttk.Frame(self)
         zone.grid(row=1, column=0, sticky="nsew", padx=6)
@@ -108,17 +116,13 @@ class VueClassinus(ttk.Frame):
 
         options = ttk.Frame(self)
         options.grid(row=4, column=0, sticky="ew", padx=6, pady=(4, 0))
-        options.columnconfigure((0, 1), weight=1, uniform="options")
-        self._cb_longueur = ttk.Combobox(options, state="readonly", width=10, font=police_petite)
-        self._cb_longueur.grid(row=0, column=0, sticky="ew", padx=(0, 2))
-        self._cb_longueur.bind("<<ComboboxSelected>>", self._longueur_choisie)
-        self._cb_modele = ttk.Combobox(options, state="readonly", width=10, font=police_petite)
-        self._cb_modele.bind("<<ComboboxSelected>>", self._modele_choisi)
-        self._btn_joindre = ttk.Button(options, style=STYLE_BOUTON, command=self._joindre)
-        self._btn_joindre.grid(row=0, column=2, sticky="e", padx=(4, 0))
+        options.columnconfigure(1, weight=1)
+        self._btn_joindre = ttk.Button(options, style=STYLE_BOUTON_LARGE, command=self._joindre)
+        self._btn_joindre.grid(row=0, column=0, sticky="w")
+        self._btn_reglages = BoutonReglages(options, STYLE_MENU, self._choix_conversation)
+        self._btn_reglages.grid(row=0, column=1, sticky="e")
         self._cadre_pieces = ttk.Frame(self)
         self._cadre_pieces.grid(row=5, column=0, sticky="ew", padx=6)
-        self._remplir_longueurs()
 
         bas = ttk.Frame(self)
         bas.grid(row=6, column=0, sticky="ew", padx=6, pady=(2, 6))
@@ -202,8 +206,8 @@ class VueClassinus(ttk.Frame):
             state="disabled" if self._occupe else "normal",
         )
         self._btn_joindre.configure(text=t("joindre"), state=libre)
-        self._cb_longueur.configure(state="disabled" if self._occupe else "readonly")
-        self._cb_modele.configure(state="disabled" if self._occupe else "readonly")
+        self._btn_reglages.activer(not self._occupe)
+        self._btn_modele.activer(not self._occupe)
         self.after_idle(self._reorganiser_actions)
 
     def _maj_etat_connexion(self):
@@ -306,6 +310,8 @@ class VueClassinus(ttk.Frame):
         self._pieces = []
         self._afficher_pieces()
         self._fil.nouveau()
+        self._en_attente = {}
+        self._btn_reglages.nouvelle_conversation()
         mise_en_forme.vider(self._historique_txt)
 
     def _lancer_echange(self, message, ctx, vider_saisie, affichage=None):
@@ -333,15 +339,20 @@ class VueClassinus(ttk.Frame):
         self._occupe = True
         self._maj_boutons()
         champs = {
-            "longueur_reponse": self._longueur_courante(),
-            "modele": self._modele_courant(),
+            "longueur_reponse": self._btn_reglages.longueur(),
+            "modele": self._btn_modele.identifiant(),
+            "effort_reflexion": self._btn_reglages.effort(),
             "message_enregistre": message,
             "client": "thonny",
             "libelles_client": contexte.libelles_boutons(),
         }
         champs.update(self._fil.champs())
         self._echange = EchangeEnCours(self._file)
-        self._echange.demarrer(contexte.construire_message(message, ctx), list(self._historique), champs, chemins)
+        en_attente, conversation_id = dict(self._en_attente), self._fil.identifiant
+        self._echange.demarrer(
+            contexte.construire_message(message, ctx), list(self._historique), champs, chemins,
+            avant=lambda: self._enregistrer_choix(conversation_id, en_attente),
+        )
 
     # ---------- fichiers joints ----------
     def _joindre(self):
@@ -377,41 +388,22 @@ class VueClassinus(ttk.Frame):
             libelle = "%s  \u00d7" % (nom if len(nom) <= 28 else nom[:27] + "\u2026")
             ttk.Button(self._cadre_pieces, text=libelle, style=STYLE_BOUTON, command=lambda c=chemin: self._retirer_piece(c)).pack(anchor="w", pady=1)
 
-    # ---------- longueur de reponse et modele ----------
-    def _remplir_longueurs(self):
-        self._cb_longueur.configure(values=[t("longueur_" + cle) for cle in conversation.LONGUEURS])
-        choisie = reglages.lire("longueur")
-        self._cb_longueur.current(conversation.LONGUEURS.index(choisie) if choisie in conversation.LONGUEURS else 1)
-
-    def _longueur_courante(self):
-        index = self._cb_longueur.current()
-        return conversation.LONGUEURS[index] if 0 <= index < len(conversation.LONGUEURS) else "moyenne"
-
-    def _longueur_choisie(self, _event=None):
-        reglages.ecrire("longueur", self._longueur_courante())
-
+    # ---------- modele et reglages ----------
     def _charger_modeles(self):
         self._file.put(("modeles", conversation.modeles_disponibles()))
 
-    def _afficher_modeles(self, modeles):
-        self._modeles = modeles
-        if not modeles:
-            self._cb_modele.grid_remove()
-            return
-        self._cb_modele.configure(values=[t("modele_auto")] + [m["label"] for m in modeles])
-        ids = [m["modele_id"] for m in modeles]
-        choisi = reglages.lire("modele")
-        self._cb_modele.current(ids.index(choisi) + 1 if choisi in ids else 0)
-        self._cb_modele.grid(row=0, column=1, sticky="ew", padx=(2, 0))
+    def _choix_conversation(self, genre, valeur):
+        """Mode pedagogique ou mode ressources choisi : enregistre sur le serveur, sinon a la prochaine question."""
+        self._en_attente[genre] = valeur
+        if connexion.est_connecte():
+            conversation_id = self._fil.identifiant
+            threading.Thread(target=self._enregistrer_choix, args=(conversation_id, {genre: valeur}), daemon=True).start()
 
-    def _modele_courant(self):
-        index = self._cb_modele.current()
-        if self._modeles and 1 <= index <= len(self._modeles):
-            return self._modeles[index - 1]["modele_id"]
-        return None
-
-    def _modele_choisi(self, _event=None):
-        reglages.ecrire("modele", self._modele_courant() or "")
+    def _enregistrer_choix(self, conversation_id, choix):
+        """Dans un fil a part. Les choix bien enregistres sont signales au panneau, qui ne les renverra plus."""
+        for genre, valeur in choix.items():
+            if parametres_conversation.definir(genre, conversation_id, valeur):
+                self._file.put(("choix_enregistre", (conversation_id, genre, valeur)))
 
     # ---------- actions dans Thonny (toujours sur clic de l'eleve) ----------
     def _boutons_bloc(self, w, code, langage):
@@ -528,7 +520,11 @@ class VueClassinus(ttk.Frame):
         elif kind == "pieces":
             self._texte_pieces = valeur
         elif kind == "modeles":
-            self._afficher_modeles(valeur)
+            self._btn_modele.definir_modeles(valeur)
+        elif kind == "choix_enregistre":
+            conversation_id, genre, enregistre = valeur
+            if conversation_id == self._fil.identifiant and self._en_attente.get(genre, enregistre) == enregistre:
+                self._en_attente.pop(genre, None)
         elif kind == "confirmation":
             self._erreur_affichee = True
             self._ecrire("\n" + t("err_confirmation") + "\n", "info")
