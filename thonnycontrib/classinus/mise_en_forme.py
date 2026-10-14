@@ -8,7 +8,7 @@ import re
 import tkinter as tk
 import tkinter.font as tkfont
 
-from . import adresses, coloration, couleurs
+from . import adresses, coloration, couleurs, tableaux
 
 _GRAS = re.compile(r"\*\*(.+?)\*\*")
 _CODE = re.compile(r"`([^`\n]+)`")
@@ -28,7 +28,9 @@ def preparer_tags(w, ouvrir_lien=None, aller_ligne=None, curseur_lien="hand2"):
     titre = base.copy()
     titre.configure(weight="bold", size=base.cget("size") + 2)
     mono = tkfont.nametofont("TkFixedFont")
-    w._polices_classinus = (gras, titre)
+    mono_gras = mono.copy()
+    mono_gras.configure(weight="bold")
+    w._polices_classinus = (gras, titre, mono_gras)
     w._actions_classinus = {}
     w._compteur_classinus = 0
 
@@ -42,6 +44,9 @@ def preparer_tags(w, ouvrir_lien=None, aller_ligne=None, curseur_lien="hand2"):
     w.tag_configure("gras", font=gras)
     w.tag_configure("titre", font=titre)
     w.tag_configure("code", font=mono, background=couleurs.nuance(w))
+    # Tableaux : jamais coupes a la largeur du panneau (la barre de defilement horizontale apparait si besoin).
+    w.tag_configure("tableau", font=mono, wrap="none", background=couleurs.nuance(w), lmargin1=6, lmargin2=6)
+    w.tag_configure("tableau_titre", font=mono_gras)
     w.tag_configure("bloc_code", font=mono, background=couleurs.nuance(w), lmargin1=12, lmargin2=12)
     for genre, couleur in coloration.couleurs().items():
         w.tag_configure("py_" + genre, foreground=couleur)
@@ -82,7 +87,20 @@ def inserer(w, texte, tag_base, rappel_bloc=None):
     dans_bloc = False
     langage = ""
     lignes_code = []
-    for ligne in texte.split("\n"):
+    lignes = texte.split("\n")
+    i = -1
+    while i + 1 < len(lignes):
+        i += 1
+        ligne = lignes[i]
+        if not dans_bloc and tableaux.commence_un_tableau(ligne, lignes[i + 1] if i + 1 < len(lignes) else None):
+            fin = i + 2
+            while fin < len(lignes) and tableaux.est_ligne_de_tableau(lignes[fin]):
+                fin += 1
+            en_tete, corps = tableaux.bloc_tableau(lignes[i:fin])
+            w.insert(tk.END, en_tete, (tag_base, "tableau", "tableau_titre"))
+            w.insert(tk.END, corps, (tag_base, "tableau"))
+            i = fin - 1
+            continue
         if ligne.strip().startswith("```"):
             if not dans_bloc:
                 dans_bloc = True

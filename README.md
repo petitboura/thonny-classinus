@@ -42,3 +42,7 @@ l'agent en propose, memes choix que le site. Bouton "Joindre un fichier" (photo
 Envoyer (`pieces_jointes.py`). Chaque conversation du panneau a son identifiant et
 ses messages s'enchainent dans le meme fil de l'historique du site
 (`conversation.py`).
+
+Tableaux : un tableau Markdown dans la reponse s'affiche en vrai tableau aligne
+(`tableaux.py`), avec une barre de defilement horizontale si le panneau est trop
+etroit. Les consignes de `consignes.txt` autorisent maintenant les tableaux.

@@ -77,7 +77,8 @@ class VueClassinus(ttk.Frame):
         zone.rowconfigure(0, weight=1)
         self._historique_txt = tk.Text(zone, wrap="word", state="disabled", height=10, width=36, borderwidth=0, padx=6, pady=6)
         defil = ttk.Scrollbar(zone, command=self._historique_txt.yview)
-        self._historique_txt.configure(yscrollcommand=defil.set)
+        self._defil_x = ttk.Scrollbar(zone, orient="horizontal", command=self._historique_txt.xview)
+        self._historique_txt.configure(yscrollcommand=defil.set, xscrollcommand=self._defiler_x)
         self._historique_txt.grid(row=0, column=0, sticky="nsew")
         defil.grid(row=0, column=1, sticky="ns")
         mise_en_forme.preparer_tags(
@@ -131,6 +132,14 @@ class VueClassinus(ttk.Frame):
         self._saisie.bind("<FocusOut>", self._saisie_perd_focus)
         self._afficher_placeholder()
         self._maj_boutons()
+
+    def _defiler_x(self, debut, fin):
+        """Barre de defilement horizontale : visible seulement quand un tableau depasse le panneau."""
+        self._defil_x.set(debut, fin)
+        if float(debut) <= 0.0 and float(fin) >= 1.0:
+            self._defil_x.grid_remove()
+        else:
+            self._defil_x.grid(row=1, column=0, sticky="ew")
 
     def _reorganiser_actions(self, _evt=None):
         """Les boutons se rangent sur autant de colonnes que la largeur du panneau le permet."""
