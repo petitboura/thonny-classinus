@@ -10,10 +10,12 @@ derniere erreur et sortie du programme) et "Expliquer cette erreur". Rien ne
 part sans un clic de l'eleve. Le code est ajoute au message envoye a Classinus ;
 les tailles maximales sont dans `defauts.json` (`max_code`, `max_sortie`).
 
-Chaque message envoye commence par les consignes de `consignes.txt` : elles
-disent a Classinus qu'il est dans Thonny, ce que font les boutons et comment
-repondre (texte simple, code Python dans un bloc python). Modifier ce fichier
-change le comportement de Classinus dans Thonny, sans toucher au code.
+Les consignes propres a Thonny (ou est Classinus, ce que font les boutons, comment
+repondre : texte simple, code Python dans un bloc python) ne sont plus dans le
+plugin : le serveur les ajoute lui-meme (fichier `core/consignes_thonny.txt` du
+backend) quand le plugin se declare client Thonny. Le plugin envoie seulement
+`client` et le nom de ses boutons dans la langue de l'eleve (`libelles_client`).
+Modifier ce fichier du serveur change le comportement de Classinus dans Thonny.
 
 Etape 3 : sous chaque bloc de code de la reponse, "Copier", "Inserer" (l'eleve
 valide, puis Ctrl+Z annule) et "Nouvel onglet" (le code s'ouvre dans un onglet
@@ -45,4 +47,4 @@ ses messages s'enchainent dans le meme fil de l'historique du site
 
 Tableaux : un tableau Markdown dans la reponse s'affiche en vrai tableau aligne
 (`tableaux.py`), avec une barre de defilement horizontale si le panneau est trop
-etroit. Les consignes de `consignes.txt` autorisent maintenant les tableaux.
+etroit. Les consignes Thonny du serveur autorisent les tableaux.

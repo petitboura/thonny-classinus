@@ -63,7 +63,7 @@ class EchangeEnCours:
             }
             donnees.update({cle: valeur for cle, valeur in champs.items() if valeur is not None})
             if donnees.get("message_enregistre"):
-                # La vraie question (sans les consignes) est celle qui est rangee dans l'historique du site.
+                # La vraie question (sans le code et le contexte joints) est celle qui est rangee dans l'historique du site.
                 donnees["message_enregistre"] += "".join(blocs)
             if images:
                 donnees["image_urls"] = images

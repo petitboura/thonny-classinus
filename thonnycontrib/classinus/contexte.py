@@ -18,6 +18,7 @@ _debogueur = None  # (nom du fichier, numero de ligne) pendant un pas a pas
 _CLOTURE = "~~~~"
 _DEBUT_COUPE = "[... debut coupe ...]\n"
 _FIN_COUPEE = "\n[... suite coupee ...]"
+# Boutons cites par les consignes Thonny du serveur (core/consignes_thonny.txt du backend).
 _BOUTONS_CITES = (
     "envoyer_code",
     "corriger_code",
@@ -117,15 +118,9 @@ def _bloc(titre, contenu, garder_debut):
     return "%s :\n%s\n%s\n%s\n" % (titre, _CLOTURE, contenu, _CLOTURE)
 
 
-def _consignes():
-    """Explique a Classinus ou il se trouve et comment repondre (texte dans consignes.txt)."""
-    chemin = os.path.join(os.path.dirname(__file__), "consignes.txt")
-    try:
-        with open(chemin, encoding="utf-8") as f:
-            modele = f.read().strip()
-    except OSError:
-        return ""
-    return modele.format(**{cle: t(cle) for cle in _BOUTONS_CITES})
+def libelles_boutons():
+    """Le nom des boutons du panneau dans la langue de l'eleve : le serveur les cite dans ses consignes Thonny."""
+    return {cle: t(cle) for cle in _BOUTONS_CITES}
 
 
 def _ligne_debogueur(ctx):
@@ -138,12 +133,14 @@ def _ligne_debogueur(ctx):
 
 
 def construire_message(question, ctx=None):
-    """Le message envoye au serveur : les consignes Thonny, ce que l'eleve voit (s'il l'a envoye), sa question."""
-    parties = [_consignes() + "\n"]
+    """Le message envoye au serveur : ce que l'eleve voit (s'il l'a envoye), puis sa question.
+
+    Les consignes propres a Thonny ne sont plus collees ici : le serveur les ajoute lui-meme
+    quand le plugin se declare client Thonny (champs `client` et `libelles_client`).
+    """
     if ctx is None:
-        parties.append("[Fin des consignes]\n\nQuestion de l'élève : %s" % question)
-        return "\n".join(parties)
-    parties.append("[Ce que l'élève te montre]")
+        return question
+    parties = ["[Ce que l'élève te montre]"]
     if ctx.nom:
         parties.append("Fichier : %s" % ctx.nom)
     if ctx.debogueur:
@@ -156,5 +153,5 @@ def construire_message(question, ctx=None):
         parties.append(_bloc("Dernière erreur affichée", ctx.erreur, False))
     if ctx.sortie:
         parties.append(_bloc("Ce que le programme a affiché", ctx.sortie, False))
-    parties.append("[Fin des consignes]\n\nQuestion de l'élève : %s" % question)
+    parties.append("Question de l'élève : %s" % question)
     return "\n".join(parties)
