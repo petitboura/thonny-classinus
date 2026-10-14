@@ -35,3 +35,10 @@ Les adresses (serveur Classinus, service de connexion) ne sont jamais ecrites
 dans le code : elles viennent de `defauts.json`, de la page de reglages
 Classinus de Thonny, ou des variables d'environnement `CLASSINUS_BACKEND_URL`
 et `CLASSINUS_SUPABASE_URL`.
+
+Etape 5 : longueur de reponse (courte, moyenne, longue) et choix du modele quand
+l'agent en propose, memes choix que le site. Bouton "Joindre un fichier" (photo
+5 Mo max, document 15 Mo max, 5 fichiers) : envoi au serveur au moment de
+Envoyer (`pieces_jointes.py`). Chaque conversation du panneau a son identifiant et
+ses messages s'enchainent dans le meme fil de l'historique du site
+(`conversation.py`).

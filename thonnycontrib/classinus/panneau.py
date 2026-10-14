@@ -1,13 +1,14 @@
 """Panneau Classinus dans Thonny : conversation, boutons d'aide, zone de saisie."""
 
+import os
 import queue
 import threading
 import tkinter as tk
 import tkinter.font as tkfont
 import webbrowser
-from tkinter import messagebox, ttk
+from tkinter import filedialog, messagebox, ttk
 
-from . import adresses, connexion, contexte, editeur, mise_en_forme
+from . import adresses, connexion, contexte, conversation, editeur, mise_en_forme, pieces_jointes, reglages
 from .erreurs import ErreurClassinus
 from .flux import EchangeEnCours
 from .textes import t
@@ -42,8 +43,13 @@ class VueClassinus(ttk.Frame):
         self._annule_connexion = False
         self._image = 0
         self._colonnes_actions = 0
+        self._fil = conversation.Fil()
+        self._pieces = []
+        self._texte_pieces = ""
+        self._modeles = []
         self._construire()
         self._maj_etat_connexion()
+        threading.Thread(target=self._charger_modeles, daemon=True).start()
         self.after(40, self._lire_file)
         self.after(120, self._animer)
 
@@ -99,8 +105,22 @@ class VueClassinus(ttk.Frame):
         (self._btn_code, self._btn_correction, self._btn_erreur, self._btn_selection, self._btn_nouvelle) = self._boutons_action
         self._actions.bind("<Configure>", self._reorganiser_actions)
 
+        options = ttk.Frame(self)
+        options.grid(row=4, column=0, sticky="ew", padx=6, pady=(4, 0))
+        options.columnconfigure((0, 1), weight=1, uniform="options")
+        self._cb_longueur = ttk.Combobox(options, state="readonly", width=10, font=police_petite)
+        self._cb_longueur.grid(row=0, column=0, sticky="ew", padx=(0, 2))
+        self._cb_longueur.bind("<<ComboboxSelected>>", self._longueur_choisie)
+        self._cb_modele = ttk.Combobox(options, state="readonly", width=10, font=police_petite)
+        self._cb_modele.bind("<<ComboboxSelected>>", self._modele_choisi)
+        self._btn_joindre = ttk.Button(options, style=STYLE_BOUTON, command=self._joindre)
+        self._btn_joindre.grid(row=0, column=2, sticky="e", padx=(4, 0))
+        self._cadre_pieces = ttk.Frame(self)
+        self._cadre_pieces.grid(row=5, column=0, sticky="ew", padx=6)
+        self._remplir_longueurs()
+
         bas = ttk.Frame(self)
-        bas.grid(row=4, column=0, sticky="ew", padx=6, pady=(2, 6))
+        bas.grid(row=6, column=0, sticky="ew", padx=6, pady=(2, 6))
         bas.columnconfigure(0, weight=1)
         self._saisie = tk.Text(bas, height=3, width=30, wrap="word", padx=4, pady=4)
         self._saisie.grid(row=0, column=0, sticky="ew")
@@ -172,6 +192,9 @@ class VueClassinus(ttk.Frame):
             text=t("se_deconnecter") if connexion.est_connecte() else t("se_connecter"),
             state="disabled" if self._occupe else "normal",
         )
+        self._btn_joindre.configure(text=t("joindre"), state=libre)
+        self._cb_longueur.configure(state="disabled" if self._occupe else "readonly")
+        self._cb_modele.configure(state="disabled" if self._occupe else "readonly")
         self.after_idle(self._reorganiser_actions)
 
     def _maj_etat_connexion(self):
@@ -227,6 +250,8 @@ class VueClassinus(ttk.Frame):
 
     def _envoyer(self):
         question = self._texte_saisi()
+        if not question and self._pieces:
+            question = t("question_fichier")
         if question:
             self._lancer_echange(question, None, True)
 
@@ -268,6 +293,10 @@ class VueClassinus(ttk.Frame):
         self._historique = []
         self._question = ""
         self._reponse = ""
+        self._texte_pieces = ""
+        self._pieces = []
+        self._afficher_pieces()
+        self._fil.nouveau()
         mise_en_forme.vider(self._historique_txt)
 
     def _lancer_echange(self, message, ctx, vider_saisie, affichage=None):
@@ -276,7 +305,11 @@ class VueClassinus(ttk.Frame):
             return
         if vider_saisie:
             self._saisie.delete("1.0", "end")
+        chemins = list(self._pieces)
+        self._pieces = []
+        self._afficher_pieces()
         self._question = message
+        self._texte_pieces = ""
         self._reponse = ""
         self._erreur_affichee = False
         self._statut_outil = ""
@@ -284,12 +317,86 @@ class VueClassinus(ttk.Frame):
         self._ecrire((affichage or message) + "\n", "utilisateur")
         if ctx is not None:
             self._ecrire(t("code_envoye") % (ctx.nom or t("sans_nom")) + "\n", "info_droite")
+        for chemin in chemins:
+            self._ecrire(os.path.basename(chemin) + "\n", "info_droite")
         self._historique_txt.mark_set("debut_reponse", "end-1c")
         self._historique_txt.mark_gravity("debut_reponse", "left")
         self._occupe = True
         self._maj_boutons()
+        champs = {"longueur_reponse": self._longueur_courante(), "modele": self._modele_courant()}
+        champs.update(self._fil.champs())
         self._echange = EchangeEnCours(self._file)
-        self._echange.demarrer(contexte.construire_message(message, ctx), list(self._historique))
+        self._echange.demarrer(contexte.construire_message(message, ctx), list(self._historique), champs, chemins)
+
+    # ---------- fichiers joints ----------
+    def _joindre(self):
+        if len(self._pieces) >= pieces_jointes.MAX_PIECES:
+            self._ecrire(t("err_trop_de_pieces") + "\n", "erreur")
+            return
+        choix = filedialog.askopenfilenames(parent=self, title=t("choisir_fichier"))
+        if not choix:
+            return
+        for chemin in self.tk.splitlist(choix):
+            if len(self._pieces) >= pieces_jointes.MAX_PIECES:
+                self._ecrire(t("err_trop_de_pieces") + "\n", "erreur")
+                break
+            try:
+                pieces_jointes.verifier(chemin)
+            except ErreurClassinus as e:
+                self._ecrire(t(e.cle_texte) % e.detail + "\n", "erreur")
+                continue
+            if chemin not in self._pieces:
+                self._pieces.append(chemin)
+        self._afficher_pieces()
+
+    def _retirer_piece(self, chemin):
+        if chemin in self._pieces:
+            self._pieces.remove(chemin)
+        self._afficher_pieces()
+
+    def _afficher_pieces(self):
+        for enfant in self._cadre_pieces.winfo_children():
+            enfant.destroy()
+        for chemin in self._pieces:
+            nom = os.path.basename(chemin)
+            libelle = "%s  \u00d7" % (nom if len(nom) <= 28 else nom[:27] + "\u2026")
+            ttk.Button(self._cadre_pieces, text=libelle, style=STYLE_BOUTON, command=lambda c=chemin: self._retirer_piece(c)).pack(anchor="w", pady=1)
+
+    # ---------- longueur de reponse et modele ----------
+    def _remplir_longueurs(self):
+        self._cb_longueur.configure(values=[t("longueur_" + cle) for cle in conversation.LONGUEURS])
+        choisie = reglages.lire("longueur")
+        self._cb_longueur.current(conversation.LONGUEURS.index(choisie) if choisie in conversation.LONGUEURS else 1)
+
+    def _longueur_courante(self):
+        index = self._cb_longueur.current()
+        return conversation.LONGUEURS[index] if 0 <= index < len(conversation.LONGUEURS) else "moyenne"
+
+    def _longueur_choisie(self, _event=None):
+        reglages.ecrire("longueur", self._longueur_courante())
+
+    def _charger_modeles(self):
+        self._file.put(("modeles", conversation.modeles_disponibles()))
+
+    def _afficher_modeles(self, modeles):
+        self._modeles = modeles
+        if not modeles:
+            self._cb_modele.grid_remove()
+            return
+        self._cb_modele.configure(values=[t("modele_auto")] + [m["label"] for m in modeles])
+        ids = [m["modele_id"] for m in modeles]
+        choisi = reglages.lire("modele")
+        self._cb_modele.current(ids.index(choisi) + 1 if choisi in ids else 0)
+        self._cb_modele.grid(row=0, column=1, sticky="ew", padx=(2, 0))
+
+    def _modele_courant(self):
+        index = self._cb_modele.current()
+        if self._modeles and 1 <= index <= len(self._modeles):
+            return self._modeles[index - 1]["modele_id"]
+        return None
+
+    def _modele_choisi(self, _event=None):
+        reglages.ecrire("modele", self._modele_courant() or "")
 
     # ---------- actions dans Thonny (toujours sur clic de l'eleve) ----------
     def _boutons_bloc(self, w, code, langage):
@@ -364,7 +471,7 @@ class VueClassinus(ttk.Frame):
         self._statut_outil = ""
         if self._reponse:
             self._mettre_en_forme_reponse()
-            self._historique.append({"role": "user", "content": self._question})
+            self._historique.append({"role": "user", "content": self._question + self._texte_pieces})
             self._historique.append({"role": "assistant", "content": self._reponse})
         if arrete:
             self._ecrire("\n" + t("arrete") + "\n", "info")
@@ -401,13 +508,22 @@ class VueClassinus(ttk.Frame):
             self._statut_outil = valeur
         elif kind == "statut_fin":
             self._statut_outil = ""
+        elif kind == "meta":
+            self._fil.retenir(valeur)
+        elif kind == "pieces":
+            self._texte_pieces = valeur
+        elif kind == "modeles":
+            self._afficher_modeles(valeur)
         elif kind == "confirmation":
             self._erreur_affichee = True
             self._ecrire("\n" + t("err_confirmation") + "\n", "info")
         elif kind == "erreur":
             cle, detail = valeur
             self._erreur_affichee = True
-            self._ecrire("\n" + t(cle) + (" " + t("detail_technique") % detail if detail else "") + "\n", "erreur")
+            texte = t(cle)
+            if "%s" in texte:
+                texte, detail = texte % detail, ""
+            self._ecrire("\n" + texte + (" " + t("detail_technique") % detail if detail else "") + "\n", "erreur")
             if cle in ("err_session_expiree", "err_connexion_requise"):
                 self._maj_etat_connexion()
         elif kind == "fin":

@@ -3,16 +3,19 @@
 Tout se passe dans un fil a part. Le fil ne touche jamais a l'interface de
 Thonny : il depose des messages dans une file, que le panneau lit regulierement.
 Messages deposes : ("texte", str), ("statut", str), ("statut_fin", str),
-("confirmation", None), ("fin", None), ("erreur", cle_texte).
+("confirmation", None), ("fin", None), ("erreur", (cle_texte, detail)),
+("meta", dict : identifiants de messages), ("pieces", str : texte des fichiers joints).
 """
 
 import json
+import os
 import threading
 import urllib.error
 import urllib.request
 
-from . import connexion, identite, reglages
+from . import connexion, identite, pieces_jointes, reglages
 from .erreurs import ErreurClassinus
+from .textes import t
 
 
 class EchangeEnCours:
@@ -21,8 +24,9 @@ class EchangeEnCours:
         self._arret = threading.Event()
         self._reponse = None
 
-    def demarrer(self, message, historique):
-        threading.Thread(target=self._executer, args=(message, historique), daemon=True).start()
+    def demarrer(self, message, historique, champs=None, chemins=None):
+        """`champs` : valeurs en plus a envoyer (longueur, modele, fil). `chemins` : fichiers joints."""
+        threading.Thread(target=self._executer, args=(message, historique, dict(champs or {}), list(chemins or [])), daemon=True).start()
 
     def arreter(self):
         self._arret.set()
@@ -34,19 +38,33 @@ class EchangeEnCours:
                 pass
         threading.Thread(target=_prevenir_arret, daemon=True).start()
 
-    def _executer(self, message, historique):
+    def _executer(self, message, historique, champs, chemins):
         try:
             base = reglages.lire("backend_url")
             if not base:
                 raise ErreurClassinus("err_adresse_manquante")
-            corps = json.dumps(
-                {
-                    "message": message,
-                    "agent_id": reglages.lire_defaut("agent_id", "clovis"),
-                    "historique": historique,
-                    "longueur_reponse": "moyenne",
-                }
-            ).encode("utf-8")
+            blocs, images = [], []
+            for chemin in chemins:
+                if self._arret.is_set():
+                    return
+                self.file.put(("statut", t("envoi_fichier") % os.path.basename(chemin)))
+                envoye = pieces_jointes.envoyer(chemin)
+                blocs.append(envoye["bloc"])
+                if envoye["image_url"]:
+                    images.append(envoye["image_url"])
+            self.file.put(("statut_fin", ""))
+            if blocs:
+                self.file.put(("pieces", "".join(blocs)))
+            donnees = {
+                "message": message + "".join(blocs),
+                "agent_id": reglages.lire_defaut("agent_id", "clovis"),
+                "historique": historique,
+                "longueur_reponse": "moyenne",
+            }
+            donnees.update({cle: valeur for cle, valeur in champs.items() if valeur is not None})
+            if images:
+                donnees["image_urls"] = images
+            corps = json.dumps(donnees).encode("utf-8")
             req = urllib.request.Request(
                 base + "/api/chat",
                 data=corps,
@@ -95,6 +113,8 @@ class EchangeEnCours:
                 self.file.put(("statut", evt.get("texte", "")))
             elif kind == "statut_termine":
                 self.file.put(("statut_fin", evt.get("texte", "")))
+            elif kind == "meta":
+                self.file.put(("meta", evt))
             elif kind == "confirmation_requise":
                 self.file.put(("confirmation", None))
                 return
