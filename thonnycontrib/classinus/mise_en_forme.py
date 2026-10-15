@@ -76,9 +76,9 @@ def _clic(w, evt, ouvrir_lien, aller_ligne):
         action = w._actions_classinus.get(nom)
         if action is None:
             continue
-        genre, valeur = action
+        genre, valeur = action[0], action[1]
         if genre == "lien" and ouvrir_lien is not None:
-            ouvrir_lien(valeur)
+            ouvrir_lien(valeur, action[2] if len(action) > 2 else None)
         elif genre == "ligne" and aller_ligne is not None:
             aller_ligne(valeur)
         return "break"
@@ -203,8 +203,14 @@ def _inserer_lien(w, texte, adresse, tags, adresse_nue):
     if site is None:
         _inserer_brut(w, texte, tags)
         return
-    visible = texte if adresse_nue else "%s (%s)" % (texte, site)
-    _inserer_action(w, visible, ("lien", adresse), tags)
+    genre = adresses.genre_classinus(adresse)
+    if genre is not None:
+        # Un fichier ou une page de Classinus : jamais l'adresse brute du serveur, le nom du fichier et « Classinus ».
+        site = adresses.NOM_SITE
+        if adresse_nue and genre == "fichier":
+            texte = adresses.nom_fichier(adresse)
+    visible = texte if adresse_nue and genre != "fichier" else "%s (%s)" % (texte, site)
+    _inserer_action(w, visible, ("lien", adresse, None if adresse_nue else texte), tags)
 
 
 def _inserer_action(w, visible, action, tags):

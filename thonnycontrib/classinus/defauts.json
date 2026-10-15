@@ -7,5 +7,33 @@
   "max_code": 20000,
   "max_sortie": 6000,
   "modele_par_defaut": "deepseek-v4-flash",
-  "distributeur_par_defaut": "deepseek"
+  "distributeur_par_defaut": "deepseek",
+  "site_url": "https://classinus.com",
+  "taille_max_texte": 1000000,
+  "extensions_texte": [
+    ".py",
+    ".txt",
+    ".md",
+    ".csv",
+    ".tsv",
+    ".json",
+    ".html",
+    ".css",
+    ".js",
+    ".xml",
+    ".yaml",
+    ".yml",
+    ".ini",
+    ".toml",
+    ".log"
+  ],
+  "extensions_navigateur": [
+    ".pdf",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".svg"
+  ]
 }

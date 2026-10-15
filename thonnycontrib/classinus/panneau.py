@@ -8,7 +8,7 @@ import tkinter.font as tkfont
 import webbrowser
 from tkinter import filedialog, messagebox, ttk
 
-from . import adresses, connexion, contexte, conversation, editeur, mise_en_forme, parametres_conversation, pieces_jointes
+from . import adresses, connexion, contexte, conversation, editeur, fichier_classinus, mise_en_forme, parametres_conversation, pieces_jointes
 from .erreurs import ErreurClassinus
 from .flux import EchangeEnCours
 from .menus import BoutonModele, BoutonReglages
@@ -465,11 +465,21 @@ class VueClassinus(ttk.Frame):
         except ErreurClassinus as e:
             self._ecrire(t(e.cle_texte) + "\n", "erreur")
 
-    def _ouvrir_lien(self, adresse):
-        """Annonce le vrai site et n'ouvre le navigateur qu'apres accord de l'eleve."""
+    def _ouvrir_lien(self, adresse, titre=None):
+        """Annonce le vrai site et n'ouvre le navigateur qu'apres accord de l'eleve.
+
+        Un fichier de Classinus ouvre la fenetre « Fichier Classinus » (voir fichier_classinus.py) ;
+        une page du site Classinus est annoncee sous le nom « Classinus ».
+        """
         site = adresses.domaine(adresse)
         if site is None:
             return
+        genre = adresses.genre_classinus(adresse)
+        if genre == "fichier":
+            fichier_classinus.proposer(self, adresse, titre, lambda texte: self._ecrire(texte + "\n", "info"))
+            return
+        if genre == "page":
+            site = adresses.NOM_SITE
         apercu = adresse if len(adresse) <= LONGUEUR_APERCU_ADRESSE else adresse[: LONGUEUR_APERCU_ADRESSE - 3] + "..."
         if messagebox.askyesno(t("lien_titre"), t("lien_question") % (site, apercu), parent=self):
             webbrowser.open(adresse)

@@ -57,3 +57,17 @@ que si le serveur propose des modeles, la liste est groupee par fournisseur, il 
 (`modele_par_defaut` dans `defauts.json`). Les icones des fournisseurs sont les vrais logos (`logos_data.py`, bibliotheque libre
 `@lobehub/icons-static-svg`, licence MIT), l'icone "Auto" est dessinee par le plugin (`icones.py`). Le mode pedagogique et les modes ressources sont enregistres
 sur le serveur pour la conversation en cours (`parametres_conversation.py`), comme sur le site.
+
+Lignes citees : quand la reponse cite des lignes du code envoye (« ligne 7 », « lignes 3 a 5 »),
+elles sont surlignees toutes seules dans l'editeur a la fin de la reponse, sans bouger le curseur
+ni le texte, et seulement si le fichier ouvert est encore exactement celui que l'eleve a envoye
+(`editeur.surligner_lignes_citees`). Dans le panneau, « ligne N » reste cliquable et ressort en jaune.
+
+Fichiers et pages de Classinus : un lien qui pointe vers un fichier servi par Classinus (serveur
+ou stockage) n'affiche jamais l'adresse brute. Il est annonce « (Classinus) » et ouvre la fenetre
+« Fichier Classinus » (`fichier_classinus.py`) : ouvrir dans Thonny (texte et code, nouvel onglet non
+enregistre), enregistrer sur l'ordinateur, ouvrir dans le navigateur (PDF et images). Les types
+proposes sont dans `defauts.json` (`extensions_texte`, `extensions_navigateur`, `taille_max_texte`),
+les adresses reconnues viennent des reglages (`backend_url`, `supabase_url`, `site_url`). Un lien vers
+une page du site Classinus s'ouvre dans le navigateur avec la fenetre de confirmation habituelle,
+qui annonce « Classinus ».
