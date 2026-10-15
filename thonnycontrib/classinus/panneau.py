@@ -65,8 +65,9 @@ class VueClassinus(ttk.Frame):
         police_petite.configure(size=taille + 1 if taille < 0 else max(7, taille - 1))
         self._police_petite = police_petite
         style = ttk.Style(self)
-        style.configure(STYLE_BOUTON, padding=(4, 1), font=police_petite)
-        style.configure(STYLE_BOUTON_LARGE, padding=(8, 3), font=police_petite)
+        # width=0 : le bouton prend la largeur de son texte entier, jamais une largeur fixe du theme
+        style.configure(STYLE_BOUTON, padding=(4, 1), font=police_petite, width=0)
+        style.configure(STYLE_BOUTON_LARGE, padding=(8, 3), font=police_petite, width=0)
         style.configure(STYLE_MENU, padding=(6, 2), font=police_petite)
 
         self.columnconfigure(0, weight=1)
@@ -138,9 +139,9 @@ class VueClassinus(ttk.Frame):
         envoi.grid(row=0, column=1, sticky="ns", padx=(6, 0))
         envoi.columnconfigure(0, weight=1)
         envoi.rowconfigure(0, weight=1)
-        self._btn_envoyer = ttk.Button(envoi, style=STYLE_BOUTON, command=self._envoyer_ou_arreter)
+        self._btn_envoyer = ttk.Button(envoi, style=STYLE_BOUTON, width=0, command=self._envoyer_ou_arreter)
         self._btn_envoyer.grid(row=0, column=0, sticky="nsew")
-        self._btn_code = ttk.Button(envoi, style=STYLE_BOUTON, command=self._envoyer_code)
+        self._btn_code = ttk.Button(envoi, style=STYLE_BOUTON, width=0, command=self._envoyer_code)
         self._btn_code.grid(row=1, column=0, sticky="ew", pady=(2, 0))
         self._saisie.bind("<Return>", self._sur_entree)
         self._saisie.bind("<Control-Shift-Return>", self._sur_envoi_code)

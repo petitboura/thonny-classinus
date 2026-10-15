@@ -92,10 +92,15 @@ class BoutonModele(ttk.Menubutton):
                     label=modele["label"], image=self._icones.obtenir(distributeur), compound="left",
                     variable=self._variable, value=modele["modele_id"], command=self._choisir,
                 )
-            for modele in a_venir:  # grises, jamais choisissables
+            for modele in a_venir:
+                # Texte grise mais ligne active : un menu desactive grise aussi l'icone, qu'on ne verrait plus.
+                # Le clic ne fait rien, le modele choisi ne change pas.
+                fond = self._menu.cget("background")
                 self._menu.add_command(
                     label="%s  (%s)" % (modele["label"], self._mot_bientot(modele)),
-                    image=self._icones.obtenir(distributeur), compound="left", state="disabled",
+                    image=self._icones.obtenir(distributeur), compound="left",
+                    foreground="#8a8a8a", activeforeground="#8a8a8a", activebackground=fond,
+                    command=lambda: None,
                 )
 
     @staticmethod

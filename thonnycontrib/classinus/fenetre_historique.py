@@ -38,7 +38,7 @@ class FenetreHistorique(tk.Toplevel):
         defil.grid(row=0, column=1, sticky="ns", pady=6)
         self._statut = ttk.Label(self, text="", foreground="#666666")
         self._statut.grid(row=1, column=0, columnspan=2, sticky="w", padx=8)
-        self._btn_plus = ttk.Button(self, text=t("historique_charger_plus"), command=self._page_suivante)
+        self._btn_plus = ttk.Button(self, text=t("historique_charger_plus"), width=0, command=self._page_suivante)
         self._btn_plus.grid(row=2, column=0, columnspan=2, pady=(2, 6))
         self._btn_plus.grid_remove()
 
