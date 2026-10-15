@@ -16,21 +16,40 @@ DELAI = 15
 TAILLE_PAGE = 30
 
 
-def _demander(chemin, parametres=None):
+def _demander(chemin, parametres=None, methode="GET", corps=None):
     base = reglages.lire("backend_url")
     adresse = "%s%s" % (base, chemin)
     if parametres:
         adresse += "?" + urllib.parse.urlencode(parametres)
-    req = urllib.request.Request(
-        adresse,
-        headers={
-            "User-Agent": identite.agent_utilisateur(),
-            "Accept": "application/json",
-            "Authorization": "Bearer " + connexion.jeton_valide(),
-        },
-    )
+    entetes = {
+        "User-Agent": identite.agent_utilisateur(),
+        "Accept": "application/json",
+        "Authorization": "Bearer " + connexion.jeton_valide(),
+    }
+    donnees = None
+    if corps is not None:
+        donnees = json.dumps(corps).encode("utf-8")
+        entetes["Content-Type"] = "application/json"
+    req = urllib.request.Request(adresse, data=donnees, method=methode, headers=entetes)
     with urllib.request.urlopen(req, timeout=DELAI) as reponse:
-        return json.loads(reponse.read().decode("utf-8"))
+        brut = reponse.read().decode("utf-8")
+    return json.loads(brut) if brut.strip() else None
+
+
+def _adresse_fil(cle):
+    return "/api/historique/%s/fils/%s" % (_agent(), urllib.parse.quote(cle, safe=""))
+
+
+def epingler(cle, epingle):
+    _demander(_adresse_fil(cle), methode="PATCH", corps={"epingle": bool(epingle)})
+
+
+def renommer(cle, titre):
+    _demander(_adresse_fil(cle), methode="PATCH", corps={"titre": titre})
+
+
+def supprimer(cle):
+    _demander(_adresse_fil(cle), methode="DELETE")
 
 
 def _agent():

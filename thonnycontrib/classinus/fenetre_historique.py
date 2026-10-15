@@ -3,7 +3,7 @@
 import queue
 import threading
 import tkinter as tk
-from tkinter import ttk
+from tkinter import messagebox, simpledialog, ttk
 
 from . import historique
 from .erreurs import ErreurClassinus
@@ -23,12 +23,15 @@ class FenetreHistorique(tk.Toplevel):
         self._file = queue.Queue()
         self._epingles, self._fils, self._suivant = [], [], None
         self._cles = {}  # identifiant de ligne -> cle de conversation
+        self._fiches = {}  # cle de conversation -> fiche reçue du serveur
         self._ouvert = {"epingles": False}  # les groupes de date sont ouverts par defaut, les epingles repliees
         self._occupe = False
 
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
-        self._arbre = ttk.Treeview(self, show="tree", selectmode="browse")
+        self._arbre = ttk.Treeview(self, show="tree", selectmode="browse", columns=("actions",))
+        self._arbre.column("#0", stretch=True)
+        self._arbre.column("actions", width=28, minwidth=28, stretch=False, anchor="center")
         defil = ttk.Scrollbar(self, command=self._arbre.yview)
         self._arbre.configure(yscrollcommand=defil.set)
         self._arbre.grid(row=0, column=0, sticky="nsew", padx=(6, 0), pady=6)
@@ -41,6 +44,8 @@ class FenetreHistorique(tk.Toplevel):
 
         self._arbre.bind("<ButtonRelease-1>", self._sur_clic)
         self._arbre.bind("<Return>", self._sur_clic)
+        self._arbre.bind("<Button-3>", self._sur_clic_droit)
+        self._arbre.bind("<Button-2>", self._sur_clic_droit)  # macOS
         self._arbre.bind("<<TreeviewOpen>>", lambda _e: self._retenir_etat(True))
         self._arbre.bind("<<TreeviewClose>>", lambda _e: self._retenir_etat(False))
         self.bind("<Escape>", lambda _e: self.destroy())
@@ -115,6 +120,10 @@ class FenetreHistorique(tk.Toplevel):
             self._occupe = False
             self._au_choix(cle, messages)
             self.destroy()
+        elif kind == "recharger":
+            self._occupe = False
+            self._epingles, self._fils, self._suivant = [], [], None
+            self._charger(None)
         elif kind == "erreur_fil":
             self._occupe = False
             self._statut.configure(text=valeur[0])
@@ -127,7 +136,7 @@ class FenetreHistorique(tk.Toplevel):
 
     def _reconstruire(self):
         self._arbre.delete(*self._arbre.get_children())
-        self._cles = {}
+        self._cles, self._fiches = {}, {}
         if self._epingles:
             titre = "%s (%d)" % (t("historique_epingles"), len(self._epingles))
             self._arbre.insert("", "end", "g:epingles", text=titre, open=self._ouvert.get("epingles", False))
@@ -143,10 +152,69 @@ class FenetreHistorique(tk.Toplevel):
         ligne = prefixe + fil["cle"]
         if self._arbre.exists(ligne):
             return
-        self._arbre.insert(parent, "end", ligne, text=fil.get("titre") or "")
+        self._arbre.insert(parent, "end", ligne, text=fil.get("titre") or "", values=("\u22ef",))
         self._cles[ligne] = fil["cle"]
+        self._fiches[fil["cle"]] = fil
 
-    def _sur_clic(self, _evt=None):
-        cle = self._cles.get(self._arbre.focus())
+    def _sur_clic(self, evt=None):
+        ligne = self._arbre.focus()
+        if evt is not None and str(evt.type) in ("5", "ButtonRelease") and self._arbre.identify_column(evt.x) == "#1":
+            ligne = self._arbre.identify_row(evt.y) or ligne
+            if ligne in self._cles:
+                self._menu_fil(ligne, evt.x_root, evt.y_root)
+            return
+        cle = self._cles.get(ligne)
         if cle:
             self._ouvrir(cle)
+
+    def _sur_clic_droit(self, evt):
+        ligne = self._arbre.identify_row(evt.y)
+        if ligne in self._cles:
+            self._arbre.focus(ligne)
+            self._arbre.selection_set(ligne)
+            self._menu_fil(ligne, evt.x_root, evt.y_root)
+
+    # ---------- actions du menu « ... » (memes que sur le site) ----------
+    def _menu_fil(self, ligne, x, y):
+        cle = self._cles[ligne]
+        fil = self._fiches.get(cle, {})
+        epingle = bool(fil.get("epingle"))
+        menu = tk.Menu(self, tearoff=False)
+        menu.add_command(
+            label=t("historique_desepingler" if epingle else "historique_epingler"),
+            command=lambda: self._agir(lambda: historique.epingler(cle, not epingle)),
+        )
+        menu.add_command(label=t("historique_renommer"), command=lambda: self._renommer(cle, fil.get("titre") or ""))
+        menu.add_command(label=t("historique_supprimer"), command=lambda: self._supprimer(cle))
+        try:
+            menu.tk_popup(x, y)
+        finally:
+            menu.grab_release()
+
+    def _renommer(self, cle, titre_actuel):
+        titre = simpledialog.askstring(t("historique_renommer"), t("historique_renommer_question"), initialvalue=titre_actuel, parent=self)
+        titre = " ".join((titre or "").split())
+        if titre and titre != titre_actuel:
+            self._agir(lambda: historique.renommer(cle, titre))
+
+    def _supprimer(self, cle):
+        if messagebox.askyesno(t("historique_supprimer"), t("historique_supprimer_question"), parent=self):
+            self._agir(lambda: historique.supprimer(cle))
+
+    def _agir(self, action):
+        """Fait l'action sur le serveur puis recharge la liste depuis le debut."""
+        if self._occupe:
+            return
+        self._occupe = True
+        self._statut.configure(text=t("historique_chargement"))
+
+        def tache():
+            try:
+                action()
+                self._file.put(("recharger",))
+            except ErreurClassinus as e:
+                self._file.put(("erreur_fil", t(e.cle_texte)))
+            except Exception:
+                self._file.put(("erreur_fil", t("historique_action_erreur")))
+
+        threading.Thread(target=tache, daemon=True).start()

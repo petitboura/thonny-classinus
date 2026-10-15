@@ -112,13 +112,14 @@ class VueClassinus(ttk.Frame):
         self._boutons_action = [
             ttk.Button(self._actions, style=STYLE_BOUTON, command=commande)
             for commande in (
+                self._joindre,
                 self._corriger_code,
                 self._expliquer_erreur,
                 self._expliquer_selection,
                 self._nouvelle_conversation,
             )
         ]
-        (self._btn_correction, self._btn_erreur, self._btn_selection, self._btn_nouvelle) = self._boutons_action
+        (self._btn_joindre, self._btn_correction, self._btn_erreur, self._btn_selection, self._btn_nouvelle) = self._boutons_action
         self._actions.bind("<Configure>", self._reorganiser_actions)
 
         options = ttk.Frame(self)
@@ -139,8 +140,6 @@ class VueClassinus(ttk.Frame):
         envoi.rowconfigure(0, weight=1)
         self._btn_envoyer = ttk.Button(envoi, style=STYLE_BOUTON, command=self._envoyer_ou_arreter)
         self._btn_envoyer.grid(row=0, column=0, sticky="nsew")
-        self._btn_joindre = ttk.Button(envoi, style=STYLE_BOUTON, command=self._joindre)
-        self._btn_joindre.grid(row=1, column=0, sticky="ew", pady=(2, 0))
         self._saisie.bind("<Return>", self._sur_entree)
         self._saisie.bind("<Control-Shift-Return>", self._sur_envoi_code)
         self._saisie.bind("<FocusIn>", self._saisie_focus)
@@ -215,14 +214,13 @@ class VueClassinus(ttk.Frame):
         libre = "disabled" if self._occupe else "normal"
         for bouton, cle in zip(
             self._boutons_action,
-            ("corriger_code", "expliquer_erreur", "expliquer_selection", "nouvelle_conversation"),
+            ("joindre", "corriger_code", "expliquer_erreur", "expliquer_selection", "nouvelle_conversation"),
         ):
             bouton.configure(text=t(cle), state=libre)
         self._btn_connexion.configure(
             text=t("se_deconnecter") if connexion.est_connecte() else t("se_connecter"),
             state="disabled" if self._occupe else "normal",
         )
-        self._btn_joindre.configure(text=t("joindre"), state=libre)
         self._btn_historique.configure(text=t("historique"), state=libre)
         self._btn_reglages.activer(not self._occupe)
         self._btn_modele.activer(not self._occupe)
