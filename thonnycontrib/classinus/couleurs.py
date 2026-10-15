@@ -41,6 +41,11 @@ def surlignage(widget):
     return melanger(widget, (255, 214, 0), 0.40)
 
 
+def ligne_citee(widget):
+    """Le fond de « ligne N » dans le panneau : meme jaune que la ligne surlignee dans l'editeur."""
+    return melanger(widget, (255, 214, 0), 0.30)
+
+
 def attenue(widget):
     """Un gris lisible sur le fond du widget (infos discretes)."""
     texte = _rgb(widget, widget.cget("foreground"))

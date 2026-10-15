@@ -15,6 +15,10 @@ _CODE = re.compile(r"`([^`\n]+)`")
 _LIEN = re.compile(r"\[([^\]\n]+)\]\((https?://[^\s)]+)\)")
 _ADRESSE = re.compile(r"https?://[^\s<>\"')\]]+")
 _LIGNE = re.compile(r"\b(?:lignes?|lines?)\s+(\d+)", re.IGNORECASE)
+# Pour surligner : « lignes 3 a 5 », « lines 3-5 » (suite) ou « lignes 3 et 5 » (deux lignes).
+_LIGNES_CITEES = re.compile(r"\b(?:lignes?|lines?)\s+(\d+)(?:\s*(-|–|à|to|et|and)\s*(\d+))?", re.IGNORECASE)
+_BLOC_CODE = re.compile(r"```.*?(?:```|\Z)", re.DOTALL)
+_MAX_SUITE_LIGNES = 40
 _MOTIFS = ((_GRAS, "gras"), (_CODE, "code"), (_LIEN, "lien"), (_ADRESSE, "adresse"), (_LIGNE, "ligne"))
 _PONCTUATION_FINALE = ".,;:!?"
 _LONGUEUR_ADRESSE_AFFICHEE = 50
@@ -52,6 +56,8 @@ def preparer_tags(w, ouvrir_lien=None, aller_ligne=None, curseur_lien="hand2"):
         w.tag_configure("py_" + genre, foreground=couleur)
 
     w.tag_configure("lien", foreground=couleurs.lien(w), underline=True)
+    # « ligne N » cliquable : plus visible qu'un lien, meme jaune que la ligne surlignee dans l'editeur.
+    w.tag_configure("ligne_citee", font=gras, background=couleurs.ligne_citee(w))
     curseur_normal = w.cget("cursor")
     w.tag_bind("lien", "<Button-1>", lambda evt: _clic(w, evt, ouvrir_lien, aller_ligne))
     w.tag_bind("lien", "<Enter>", lambda evt: w.configure(cursor=curseur_lien))
@@ -77,6 +83,23 @@ def _clic(w, evt, ouvrir_lien, aller_ligne):
             aller_ligne(valeur)
         return "break"
     return None
+
+
+def lignes_citees(texte):
+    """Les numeros de ligne cites par la reponse, hors blocs de code (ex. « lignes 3 a 5 » donne 3, 4, 5)."""
+    numeros = set()
+    for m in _LIGNES_CITEES.finditer(_BLOC_CODE.sub("", texte)):
+        premier = int(m.group(1))
+        numeros.add(premier)
+        if m.group(3) is None:
+            continue
+        second = int(m.group(3))
+        if m.group(2).lower() in ("-", "–", "à", "to"):
+            if premier < second <= premier + _MAX_SUITE_LIGNES:
+                numeros.update(range(premier, second + 1))
+        else:
+            numeros.add(second)
+    return sorted(numeros)
 
 
 def inserer(w, texte, tag_base, rappel_bloc=None):
@@ -188,4 +211,5 @@ def _inserer_action(w, visible, action, tags):
     nom = "action_%d" % w._compteur_classinus
     w._compteur_classinus += 1
     w._actions_classinus[nom] = action
-    w.insert(tk.END, visible, tags + ("lien", nom))
+    supplement = ("ligne_citee",) if action[0] == "ligne" else ()
+    w.insert(tk.END, visible, tags + ("lien", nom) + supplement)

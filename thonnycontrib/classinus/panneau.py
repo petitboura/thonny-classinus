@@ -38,6 +38,7 @@ class VueClassinus(ttk.Frame):
         self._echange = None
         self._historique = []
         self._question = ""
+        self._contexte_envoye = None  # le code montre avec la derniere question : les « ligne N » de la reponse le visent
         self._reponse = ""
         self._erreur_affichee = False
         self._statut_outil = ""
@@ -305,6 +306,7 @@ class VueClassinus(ttk.Frame):
     def _nouvelle_conversation(self):
         self._historique = []
         self._question = ""
+        self._contexte_envoye = None
         self._reponse = ""
         self._texte_pieces = ""
         self._pieces = []
@@ -324,6 +326,11 @@ class VueClassinus(ttk.Frame):
         self._pieces = []
         self._afficher_pieces()
         self._question = message
+        self._contexte_envoye = ctx
+        try:
+            editeur.effacer_surlignage()
+        except tk.TclError:
+            pass  # l'onglet a ete ferme entre temps
         self._texte_pieces = ""
         self._reponse = ""
         self._erreur_affichee = False
@@ -478,6 +485,7 @@ class VueClassinus(ttk.Frame):
         self._statut_outil = ""
         if self._reponse:
             self._mettre_en_forme_reponse()
+            self._surligner_lignes_citees()
             self._historique.append({"role": "user", "content": self._question + self._texte_pieces})
             self._historique.append({"role": "assistant", "content": self._reponse})
         if arrete:
@@ -487,6 +495,19 @@ class VueClassinus(ttk.Frame):
         self._reponse = ""
         self._echange = None
         self._maj_etat_connexion()
+
+    def _surligner_lignes_citees(self):
+        """Surligne dans l'editeur les lignes que la reponse cite, si l'eleve a envoye ce fichier et ne l'a pas change."""
+        ctx = self._contexte_envoye
+        if ctx is None or not ctx.code.strip():
+            return
+        numeros = mise_en_forme.lignes_citees(self._reponse)
+        if not numeros:
+            return
+        try:
+            editeur.surligner_lignes_citees(numeros, ctx.nom, ctx.code)
+        except (ErreurClassinus, tk.TclError):
+            pass  # rien a montrer : l'eleve garde les « ligne N » cliquables dans le panneau
 
     def _mettre_en_forme_reponse(self):
         w = self._historique_txt
