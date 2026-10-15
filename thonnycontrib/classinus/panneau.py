@@ -8,7 +8,7 @@ import tkinter.font as tkfont
 import webbrowser
 from tkinter import filedialog, messagebox, ttk
 
-from . import adresses, connexion, contexte, conversation, editeur, fichier_classinus, mise_en_forme, parametres_conversation, pieces_jointes
+from . import adresses, connexion, contexte, conversation, editeur, fichier_classinus, marque, mise_en_forme, parametres_conversation, pieces_jointes
 from .fenetre_historique import FenetreHistorique
 from .erreurs import ErreurClassinus
 from .flux import EchangeEnCours
@@ -19,6 +19,7 @@ IMAGES_ATTENTE = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 STYLE_BOUTON = "Classinus.TButton"
 STYLE_BOUTON_LARGE = "Classinus.Large.TButton"
 STYLE_MENU = "Classinus.TMenubutton"
+DELAI_RENDU_MS = 120  # intervalle entre deux remises en forme de la reponse pendant qu'elle s'ecrit
 DUREE_COPIE_MS = 1500
 LONGUEUR_APERCU_ADRESSE = 200
 
@@ -41,6 +42,7 @@ class VueClassinus(ttk.Frame):
         self._question = ""
         self._contexte_envoye = None  # le code montre avec la derniere question : les « ligne N » de la reponse le visent
         self._reponse = ""
+        self._rendu_prevu = False
         self._erreur_affichee = False
         self._statut_outil = ""
         self._occupe = False
@@ -92,6 +94,7 @@ class VueClassinus(ttk.Frame):
         zone.grid(row=1, column=0, sticky="nsew", padx=6)
         zone.columnconfigure(0, weight=1)
         zone.rowconfigure(0, weight=1)
+        self._marque = marque.creer_image(self)
         self._historique_txt = tk.Text(zone, wrap="word", state="disabled", height=10, width=36, borderwidth=0, padx=6, pady=6)
         defil = ttk.Scrollbar(zone, command=self._historique_txt.yview)
         self._defil_x = ttk.Scrollbar(zone, orient="horizontal", command=self._historique_txt.xview)
@@ -203,6 +206,12 @@ class VueClassinus(ttk.Frame):
         return "break"
 
     # ---------- affichage ----------
+    def _poser_marque(self):
+        w = self._historique_txt
+        w.configure(state="normal")
+        marque.poser(w, self._marque)
+        w.configure(state="disabled")
+
     def _ecrire(self, texte, *tags):
         w = self._historique_txt
         bas = w.yview()[1] >= 0.99
@@ -357,6 +366,7 @@ class VueClassinus(ttk.Frame):
                 w.insert(tk.END, "\n")
                 w.insert(tk.END, contenu + "\n", ("utilisateur",))
             else:
+                marque.poser(w, self._marque)
                 mise_en_forme.inserer(w, contenu, "assistant", self._boutons_bloc)
         w.configure(state="disabled")
         w.see(tk.END)
@@ -391,8 +401,10 @@ class VueClassinus(ttk.Frame):
             self._ecrire(t("code_envoye") % (ctx.nom or t("sans_nom")) + "\n", "info_droite")
         for chemin in chemins:
             self._ecrire(os.path.basename(chemin) + "\n", "info_droite")
+        self._rendu_prevu = False
         self._historique_txt.mark_set("debut_reponse", "end-1c")
         self._historique_txt.mark_gravity("debut_reponse", "left")
+        self._poser_marque()
         self._occupe = True
         self._maj_boutons()
         champs = {
@@ -569,10 +581,27 @@ class VueClassinus(ttk.Frame):
         except (ErreurClassinus, tk.TclError):
             pass  # rien a montrer : l'eleve garde les « ligne N » cliquables dans le panneau
 
+    def _rendu_progressif(self):
+        """Pendant l'ecriture : la reponse deja recue est remise en forme (titres, gras, code, tableaux) a chaque
+        petit intervalle, sans les boutons des blocs de code qui n'arrivent qu'a la fin."""
+        self._rendu_prevu = False
+        if not self._occupe or not self._reponse:
+            return
+        w = self._historique_txt
+        en_bas = w.yview()[1] >= 0.99
+        w.configure(state="normal")
+        w.delete("debut_reponse", "end-1c")
+        marque.poser(w, self._marque)
+        mise_en_forme.inserer(w, self._reponse, "assistant", None)
+        w.configure(state="disabled")
+        if en_bas:
+            w.see(tk.END)
+
     def _mettre_en_forme_reponse(self):
         w = self._historique_txt
         w.configure(state="normal")
         w.delete("debut_reponse", "end-1c")
+        marque.poser(w, self._marque)
         mise_en_forme.inserer(w, self._reponse, "assistant", self._boutons_bloc)
         w.configure(state="disabled")
         w.see(tk.END)
@@ -591,7 +620,9 @@ class VueClassinus(ttk.Frame):
         if kind == "texte":
             if self._occupe:
                 self._reponse += valeur
-                self._ecrire(valeur, "assistant")
+                if not self._rendu_prevu:
+                    self._rendu_prevu = True
+                    self.after(DELAI_RENDU_MS, self._rendu_progressif)
         elif kind == "statut":
             self._statut_outil = valeur
         elif kind == "statut_fin":
