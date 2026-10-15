@@ -24,7 +24,22 @@ def creer_image(master):
     return tk.PhotoImage(master=master, data=ICONE_PNG_BASE64)
 
 
+ETIQUETTE = "marque_classinus"
+
+
 def poser(widget, image):
     """Pose l'icone puis une espace a la fin du texte : la reponse s'ecrit sur la meme ligne, a sa droite."""
+    debut = widget.index("end-1c")
     widget.image_create(tk.END, image=image, align="center")
     widget.insert(tk.END, " ", ("assistant",))
+    widget.tag_add(ETIQUETTE, debut, "end-1c")
+
+
+def retirer(widget):
+    """Enleve toutes les icones deja posees : seule la derniere reponse porte l'icone."""
+    etat = str(widget.cget("state"))
+    widget.configure(state="normal")
+    plages = widget.tag_ranges(ETIQUETTE)
+    for i in range(len(plages) - 2, -1, -2):
+        widget.delete(plages[i], plages[i + 1])
+    widget.configure(state=etat)

@@ -360,13 +360,15 @@ class VueClassinus(ttk.Frame):
         chemin = [m for m in messages if m.get("role") in ("user", "assistant") and (m.get("content") or "").strip()]
         w = self._historique_txt
         w.configure(state="normal")
-        for m in chemin:
+        derniere = max((i for i, m in enumerate(chemin) if m["role"] == "assistant"), default=-1)
+        for i, m in enumerate(chemin):
             contenu = m["content"].strip()
             if m["role"] == "user":
                 w.insert(tk.END, "\n")
                 w.insert(tk.END, contenu + "\n", ("utilisateur",))
             else:
-                marque.poser(w, self._marque)
+                if i == derniere:  # l'icone ne marque que la derniere reponse
+                    marque.poser(w, self._marque)
                 mise_en_forme.inserer(w, contenu, "assistant", self._boutons_bloc)
         w.configure(state="disabled")
         w.see(tk.END)
@@ -402,6 +404,7 @@ class VueClassinus(ttk.Frame):
         for chemin in chemins:
             self._ecrire(os.path.basename(chemin) + "\n", "info_droite")
         self._rendu_prevu = False
+        marque.retirer(self._historique_txt)
         self._historique_txt.mark_set("debut_reponse", "end-1c")
         self._historique_txt.mark_gravity("debut_reponse", "left")
         self._poser_marque()
