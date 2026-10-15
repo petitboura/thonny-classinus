@@ -140,6 +140,8 @@ class VueClassinus(ttk.Frame):
         envoi.rowconfigure(0, weight=1)
         self._btn_envoyer = ttk.Button(envoi, style=STYLE_BOUTON, command=self._envoyer_ou_arreter)
         self._btn_envoyer.grid(row=0, column=0, sticky="nsew")
+        self._btn_code = ttk.Button(envoi, style=STYLE_BOUTON, command=self._envoyer_code)
+        self._btn_code.grid(row=1, column=0, sticky="ew", pady=(2, 0))
         self._saisie.bind("<Return>", self._sur_entree)
         self._saisie.bind("<Control-Shift-Return>", self._sur_envoi_code)
         self._saisie.bind("<FocusIn>", self._saisie_focus)
@@ -212,6 +214,7 @@ class VueClassinus(ttk.Frame):
     def _maj_boutons(self):
         self._btn_envoyer.configure(text=t("arreter") if self._occupe else t("envoyer"))
         libre = "disabled" if self._occupe else "normal"
+        self._btn_code.configure(text=t("envoyer_code"), state=libre)
         for bouton, cle in zip(
             self._boutons_action,
             ("joindre", "corriger_code", "expliquer_erreur", "expliquer_selection", "nouvelle_conversation"),
