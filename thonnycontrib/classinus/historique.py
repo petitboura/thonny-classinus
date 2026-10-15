@@ -89,7 +89,7 @@ def branche_recente(lignes):
     return list(reversed(chemin))
 
 
-# ---------- groupes par date, memes regles que le site ----------
+# groupes par date, memes regles que le site
 def _jour(d):
     return datetime.date(d.year, d.month, d.day)
 

@@ -52,7 +52,7 @@ class FenetreHistorique(tk.Toplevel):
         self._charger(None)
         self.after(50, self._lire_file)
 
-    # ---------- chargement (reseau dans un fil a part, jamais d'interface depuis ce fil) ----------
+    # chargement (reseau dans un fil a part, jamais d'interface depuis ce fil)
     def _charger(self, curseur):
         self._statut.configure(text=t("historique_chargement"))
         self._btn_plus.configure(state="disabled")
@@ -128,7 +128,7 @@ class FenetreHistorique(tk.Toplevel):
             self._occupe = False
             self._statut.configure(text=valeur[0])
 
-    # ---------- liste ----------
+    # liste
     def _retenir_etat(self, ouvert):
         ligne = self._arbre.focus()
         if ligne.startswith("g:"):
@@ -174,7 +174,7 @@ class FenetreHistorique(tk.Toplevel):
             self._arbre.selection_set(ligne)
             self._menu_fil(ligne, evt.x_root, evt.y_root)
 
-    # ---------- actions du menu « ... » (memes que sur le site) ----------
+    # actions du menu « ... » (memes que sur le site)
     def _menu_fil(self, ligne, x, y):
         cle = self._cles[ligne]
         fil = self._fiches.get(cle, {})
