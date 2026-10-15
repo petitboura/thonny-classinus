@@ -14,8 +14,6 @@ from .textes import t
 LONGUEUR_MAX_MODELE = 22
 ORDRE_DISTRIBUTEURS = ("claude", "gpt", "gemini", "deepseek")
 NOMS_DISTRIBUTEURS = {"claude": "Claude", "gpt": "GPT", "gemini": "Gemini", "deepseek": "DeepSeek"}
-DISTRIBUTEUR_PAR_DEFAUT = "deepseek"
-CHOIX_AUTO = "auto"  # valeur gardee dans les reglages de Thonny pour « Auto »
 
 EFFORTS = ("none", "low", "high", "max")
 EFFORT_PAR_DEFAUT = "low"  # le meme que celui du serveur et du site
@@ -24,7 +22,15 @@ MODES_SOURCE = ("recherche", "sur_pieces")
 
 
 class BoutonModele(ttk.Menubutton):
-    """Choix du modele. « Auto » laisse Classinus choisir ; sans choix de l'eleve, c'est DeepSeek."""
+    """Choix du modele, avec les memes regles que le bouton du haut du site.
+
+    - Le bouton n'existe que si le serveur propose au moins un modele (le panneau le cache sinon).
+    - La liste est groupee par fournisseur, dans l'ordre fixe de ORDRE_DISTRIBUTEURS, seulement
+      pour les fournisseurs presents.
+    - Le modele actif est le dernier choix de l'eleve s'il est encore dans la liste ; sinon le
+      modele par defaut (DeepSeek Flash, voir defauts.json). Il n'y a pas de mode « Auto ».
+    - Le serveur revalide de toute facon le modele recu.
+    """
 
     def __init__(self, master, style):
         super().__init__(master, style=style, direction="below")
@@ -33,47 +39,46 @@ class BoutonModele(ttk.Menubutton):
         self._variable = tk.StringVar()
         self._menu = tk.Menu(self, tearoff=False)
         self.configure(menu=self._menu)
-        self.definir_modeles([])
 
     def definir_modeles(self, modeles):
-        self._modeles = list(modeles)
+        self._modeles = [m for m in modeles if m.get("modele_id")]
         self._construire_menu()
-        self._variable.set(self._cle_choisie())
+        self._variable.set(self.identifiant() or "")
         self._maj_bouton()
 
+    def a_des_modeles(self):
+        return bool(self._modeles)
+
     def identifiant(self):
-        """Le modele a envoyer au serveur, ou None (Auto, ou aucun modele propose)."""
-        cle = self._cle_choisie()
-        return cle if any(m["modele_id"] == cle for m in self._modeles) else None
-
-    def _par_defaut(self):
-        for modele in self._modeles:
-            if modele["distributeur"] == DISTRIBUTEUR_PAR_DEFAUT:
-                return modele["modele_id"]
-        return CHOIX_AUTO
-
-    def _cle_choisie(self):
-        """Le choix de l'eleve s'il est encore valable, sinon DeepSeek."""
+        """Le modele a envoyer au serveur, ou None quand le serveur n'en propose aucun."""
+        if not self._modeles:
+            return None
         garde = reglages.lire("modele")
-        if garde == CHOIX_AUTO:
-            return CHOIX_AUTO
         if any(m["modele_id"] == garde for m in self._modeles):
             return garde
-        return self._par_defaut()
+        return self._par_defaut()["modele_id"]
+
+    def _par_defaut(self):
+        voulu = reglages.lire_defaut("modele_par_defaut")
+        distributeur = reglages.lire_defaut("distributeur_par_defaut")
+        for critere in (lambda m: m["modele_id"] == voulu, lambda m: m["distributeur"] == distributeur):
+            trouve = next((m for m in self._modeles if critere(m)), None)
+            if trouve:
+                return trouve
+        return self._modeles[0]
+
+    def _modele_actif(self):
+        identifiant = self.identifiant()
+        return next((m for m in self._modeles if m["modele_id"] == identifiant), None)
 
     def _construire_menu(self):
         self._menu.delete(0, "end")
-        if not self._modeles:
-            return
-        self._menu.add_radiobutton(
-            label=t("modele_auto"), image=self._icones.obtenir("auto"), compound="left",
-            variable=self._variable, value=CHOIX_AUTO, command=self._choisir,
-        )
         for distributeur in ORDRE_DISTRIBUTEURS:
             du_distributeur = [m for m in self._modeles if m["distributeur"] == distributeur]
             if not du_distributeur:
                 continue
-            self._menu.add_separator()
+            if self._menu.index("end") is not None:
+                self._menu.add_separator()
             self._menu.add_command(label=NOMS_DISTRIBUTEURS[distributeur], state="disabled")
             for modele in du_distributeur:
                 self._menu.add_radiobutton(
@@ -86,23 +91,16 @@ class BoutonModele(ttk.Menubutton):
         self._maj_bouton()
 
     def _maj_bouton(self):
-        cle = self._cle_choisie()
-        if not self._modeles:
-            texte, icone = NOMS_DISTRIBUTEURS[DISTRIBUTEUR_PAR_DEFAUT], DISTRIBUTEUR_PAR_DEFAUT
-        elif cle == CHOIX_AUTO:
-            texte, icone = t("modele_auto"), "auto"
-        else:
-            modele = next((m for m in self._modeles if m["modele_id"] == cle), None)
-            texte = modele["label"] if modele else NOMS_DISTRIBUTEURS[DISTRIBUTEUR_PAR_DEFAUT]
-            icone = modele["distributeur"] if modele else DISTRIBUTEUR_PAR_DEFAUT
+        modele = self._modele_actif()
+        if modele is None:
+            return
+        texte = modele["label"]
         if len(texte) > LONGUEUR_MAX_MODELE:
-            texte = texte[: LONGUEUR_MAX_MODELE - 1] + "…"
-        self.configure(text=texte, image=self._icones.obtenir(icone), compound="left")
-        # Sans liste de modeles venue du serveur, rien a choisir : le bouton montre seulement le modele utilise.
-        self.configure(state="normal" if self._modeles else "disabled")
+            texte = texte[: LONGUEUR_MAX_MODELE - 1] + "\u2026"
+        self.configure(text=texte, image=self._icones.obtenir(modele["distributeur"]), compound="left")
 
     def activer(self, actif):
-        self.configure(state="normal" if actif and self._modeles else "disabled")
+        self.configure(state="normal" if actif else "disabled")
 
 
 class BoutonReglages(ttk.Menubutton):

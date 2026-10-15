@@ -5,5 +5,7 @@
   "scope": "openid profile email",
   "port_retour": 47653,
   "max_code": 20000,
-  "max_sortie": 6000
+  "max_sortie": 6000,
+  "modele_par_defaut": "deepseek-v4-flash",
+  "distributeur_par_defaut": "deepseek"
 }

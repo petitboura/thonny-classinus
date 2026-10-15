@@ -51,7 +51,9 @@ etroit. Les consignes Thonny du serveur autorisent les tableaux.
 
 Boutons du bas et du haut du panneau : "Joindre un fichier" (sur sa ligne, texte entier) et
 "Reglages" (longueur de reponse, effort, mode pedagogique, modes ressources, comme sur le site).
-Le bouton "Modele" est en haut du panneau : "Auto" laisse Classinus choisir, et sans choix de
-l'eleve c'est DeepSeek. Les icones des fournisseurs sont les vrais logos (`logos_data.py`, bibliotheque libre
+Le bouton "Modele" est en haut du panneau, avec les memes regles que sur le site : il n'apparait
+que si le serveur propose des modeles, la liste est groupee par fournisseur, il n'y a pas de mode
+"Auto". Le modele actif est le dernier choix de l'eleve s'il est encore propose, sinon DeepSeek Flash
+(`modele_par_defaut` dans `defauts.json`). Les icones des fournisseurs sont les vrais logos (`logos_data.py`, bibliotheque libre
 `@lobehub/icons-static-svg`, licence MIT), l'icone "Auto" est dessinee par le plugin (`icones.py`). Le mode pedagogique et les modes ressources sont enregistres
 sur le serveur pour la conversation en cours (`parametres_conversation.py`), comme sur le site.

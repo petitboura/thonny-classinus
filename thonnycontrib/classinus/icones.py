@@ -1,7 +1,6 @@
-"""Icones des menus : vrais logos des fournisseurs (voir logos_data.py), et une icone dessinee pour « Auto ».
+"""Icones des menus : vrais logos des fournisseurs (voir logos_data.py), et une icone grise simple pour un fournisseur sans logo.
 
-Pas de fichier image a telecharger : les logos sont dans le paquet. L'icone « Auto » n'a pas de
-logo, elle est calculee point par point puis transformee en image PNG que Tk sait afficher.
+Pas de fichier image a telecharger : les logos sont dans le paquet. Un fournisseur sans logo recoit un disque gris, calcule point par point puis transformee en image PNG que Tk sait afficher.
 """
 
 import base64
@@ -15,31 +14,15 @@ from .logos_data import LOGOS
 TAILLE = 16
 SUR_ECHANTILLON = 4  # chaque pixel est calcule sur 4 x 4 points : bords lisses
 
-BLANC = (255, 255, 255)
-
-
 def _disque(x, y, rayon, cx=0.0, cy=0.0):
     return (x - cx) ** 2 + (y - cy) ** 2 <= rayon ** 2
-
-
-def _etoile(x, y, taille):
-    """Etoile a quatre branches (aux cotes creux)."""
-    return (abs(x) / taille) ** 0.7 + (abs(y) / taille) ** 0.7 <= 1
-
-
-def _auto(x, y):
-    if not _disque(x, y, 0.95):
-        return None
-    if _etoile(x, y, 0.55):
-        return BLANC
-    return (122, 130, 150)
 
 
 def _generique(x, y):
     return (122, 130, 150) if _disque(x, y, 0.95) else None
 
 
-FORMES = {"auto": _auto}
+FORMES = {}
 
 
 def _png(lignes):

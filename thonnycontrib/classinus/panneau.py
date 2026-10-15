@@ -79,6 +79,7 @@ class VueClassinus(ttk.Frame):
         self._btn_connexion.grid(row=0, column=1, sticky="e")
         self._btn_modele = BoutonModele(haut, STYLE_MENU)
         self._btn_modele.grid(row=1, column=0, columnspan=2, sticky="w", pady=(4, 0))
+        self._btn_modele.grid_remove()  # visible seulement quand le serveur propose des modeles
 
         zone = ttk.Frame(self)
         zone.grid(row=1, column=0, sticky="nsew", padx=6)
@@ -542,6 +543,10 @@ class VueClassinus(ttk.Frame):
             self._texte_pieces = valeur
         elif kind == "modeles":
             self._btn_modele.definir_modeles(valeur)
+            if self._btn_modele.a_des_modeles():
+                self._btn_modele.grid()
+            else:
+                self._btn_modele.grid_remove()
         elif kind == "choix_enregistre":
             conversation_id, genre, enregistre = valeur
             if conversation_id == self._fil.identifiant and self._en_attente.get(genre, enregistre) == enregistre:
