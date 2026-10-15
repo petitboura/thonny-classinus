@@ -35,15 +35,26 @@ class Fil:
         return champs
 
 
-def modeles_disponibles():
-    """Les modeles que l'agent propose (liste de {"modele_id", "label", "distributeur"}), vide s'il n'en propose aucun.
+def _modele(m):
+    return {
+        "modele_id": m["modele_id"],
+        "label": m.get("label") or m["modele_id"],
+        "distributeur": m.get("distributeur") or "",
+        "libelles_bientot": m.get("libelles_bientot") if isinstance(m.get("libelles_bientot"), dict) else {},
+    }
 
-    Meme source que le selecteur du site. Appel public, sans connexion. Toute panne donne une
-    liste vide : le panneau fonctionne alors avec le modele par defaut, comme avant.
+
+def modeles_selecteur():
+    """Les modeles du selecteur : (utilisables, bientot), chacun une liste de {"modele_id", "label", "distributeur"}.
+
+    Meme source que le selecteur du site : les modeles « bientot » (fournisseurs marques Bientot dans
+    Supabase) arrivent avec le mot a afficher par langue (cle `libelles_bientot`) et ne sont jamais
+    choisissables. Appel public, sans connexion. Toute panne donne deux listes vides : le panneau
+    fonctionne alors avec le modele par defaut, comme avant.
     """
     base = reglages.lire("backend_url")
     if not base:
-        return []
+        return [], []
     try:
         req = urllib.request.Request(
             "%s/api/agents/%s" % (base, reglages.lire_defaut("agent_id", "clovis")),
@@ -51,14 +62,9 @@ def modeles_disponibles():
         )
         with urllib.request.urlopen(req, timeout=10) as reponse:
             donnees = json.loads(reponse.read().decode("utf-8"))
-        return [
-            {
-                "modele_id": m["modele_id"],
-                "label": m.get("label") or m["modele_id"],
-                "distributeur": m.get("distributeur") or "",
-            }
-            for m in donnees.get("modeles_disponibles") or []
-            if isinstance(m, dict) and m.get("modele_id")
-        ]
+        return tuple(
+            [_modele(m) for m in donnees.get(cle) or [] if isinstance(m, dict) and m.get("modele_id")]
+            for cle in ("modeles_disponibles", "modeles_bientot")
+        )
     except Exception:
-        return []
+        return [], []

@@ -106,23 +106,23 @@ class VueClassinus(ttk.Frame):
         self._boutons_action = [
             ttk.Button(self._actions, style=STYLE_BOUTON, command=commande)
             for commande in (
-                self._envoyer_code,
                 self._corriger_code,
                 self._expliquer_erreur,
                 self._expliquer_selection,
                 self._nouvelle_conversation,
             )
         ]
-        (self._btn_code, self._btn_correction, self._btn_erreur, self._btn_selection, self._btn_nouvelle) = self._boutons_action
+        (self._btn_correction, self._btn_erreur, self._btn_selection, self._btn_nouvelle) = self._boutons_action
         self._actions.bind("<Configure>", self._reorganiser_actions)
 
         options = ttk.Frame(self)
         options.grid(row=4, column=0, sticky="ew", padx=6, pady=(4, 0))
-        options.columnconfigure(1, weight=1)
+        self._options = options
+        self._reglages_dessous = None
         self._btn_joindre = ttk.Button(options, style=STYLE_BOUTON_LARGE, command=self._joindre)
         self._btn_joindre.grid(row=0, column=0, sticky="w")
         self._btn_reglages = BoutonReglages(options, STYLE_MENU, self._choix_conversation)
-        self._btn_reglages.grid(row=0, column=1, sticky="e")
+        options.bind("<Configure>", self._reorganiser_options)
         self._cadre_pieces = ttk.Frame(self)
         self._cadre_pieces.grid(row=5, column=0, sticky="ew", padx=6)
 
@@ -131,8 +131,14 @@ class VueClassinus(ttk.Frame):
         bas.columnconfigure(0, weight=1)
         self._saisie = tk.Text(bas, height=3, width=30, wrap="word", padx=4, pady=4)
         self._saisie.grid(row=0, column=0, sticky="ew")
-        self._btn_envoyer = ttk.Button(bas, style=STYLE_BOUTON, command=self._envoyer_ou_arreter)
-        self._btn_envoyer.grid(row=0, column=1, sticky="ns", padx=(6, 0))
+        envoi = ttk.Frame(bas)
+        envoi.grid(row=0, column=1, sticky="ns", padx=(6, 0))
+        envoi.columnconfigure(0, weight=1)
+        envoi.rowconfigure(0, weight=1)
+        self._btn_envoyer = ttk.Button(envoi, style=STYLE_BOUTON, command=self._envoyer_ou_arreter)
+        self._btn_envoyer.grid(row=0, column=0, sticky="nsew")
+        self._btn_code = ttk.Button(envoi, style=STYLE_BOUTON, command=self._envoyer_code)
+        self._btn_code.grid(row=1, column=0, sticky="ew", pady=(2, 0))
         self._saisie.bind("<Return>", self._sur_entree)
         self._saisie.bind("<FocusIn>", self._saisie_focus)
         self._saisie.bind("<FocusOut>", self._saisie_perd_focus)
@@ -159,6 +165,22 @@ class VueClassinus(ttk.Frame):
             self._actions.columnconfigure(i, weight=1 if i < colonnes else 0, uniform="actions" if i < colonnes else "")
         for i, bouton in enumerate(self._boutons_action):
             bouton.grid(row=i // colonnes, column=i % colonnes, sticky="ew", padx=1, pady=1)
+
+    def _reorganiser_options(self, _evt=None):
+        """« Joindre un fichier » garde tout son texte : « Reglages » passe a la ligne quand la place manque."""
+        largeur = self._options.winfo_width()
+        besoin = self._btn_joindre.winfo_reqwidth() + self._btn_reglages.winfo_reqwidth() + 8
+        dessous = largeur > 1 and largeur < besoin
+        if dessous == self._reglages_dessous:
+            return
+        self._reglages_dessous = dessous
+        self._options.columnconfigure(0, weight=0, minsize=self._btn_joindre.winfo_reqwidth())
+        self._options.columnconfigure(1, weight=0 if dessous else 1)
+        self._btn_joindre.grid(row=0, column=0, sticky="w")
+        if dessous:
+            self._btn_reglages.grid(row=1, column=0, columnspan=2, sticky="w", pady=(2, 0))
+        else:
+            self._btn_reglages.grid(row=0, column=1, columnspan=1, sticky="e", pady=0)
 
     # ---------- saisie ----------
     def _afficher_placeholder(self):
@@ -198,9 +220,10 @@ class VueClassinus(ttk.Frame):
     def _maj_boutons(self):
         self._btn_envoyer.configure(text=t("arreter") if self._occupe else t("envoyer"))
         libre = "disabled" if self._occupe else "normal"
+        self._btn_code.configure(text=t("envoyer_code"), state=libre)
         for bouton, cle in zip(
             self._boutons_action,
-            ("envoyer_code", "corriger_code", "expliquer_erreur", "expliquer_selection", "nouvelle_conversation"),
+            ("corriger_code", "expliquer_erreur", "expliquer_selection", "nouvelle_conversation"),
         ):
             bouton.configure(text=t(cle), state=libre)
         self._btn_connexion.configure(
@@ -208,6 +231,7 @@ class VueClassinus(ttk.Frame):
             state="disabled" if self._occupe else "normal",
         )
         self._btn_joindre.configure(text=t("joindre"), state=libre)
+        self._options.after_idle(self._reorganiser_options)
         self._btn_reglages.activer(not self._occupe)
         self._btn_modele.activer(not self._occupe)
         self.after_idle(self._reorganiser_actions)
@@ -398,7 +422,7 @@ class VueClassinus(ttk.Frame):
 
     # ---------- modele et reglages ----------
     def _charger_modeles(self):
-        self._file.put(("modeles", conversation.modeles_disponibles()))
+        self._file.put(("modeles", conversation.modeles_selecteur()))
 
     def _choix_conversation(self, genre, valeur):
         """Mode pedagogique ou mode ressources choisi : enregistre sur le serveur, sinon a la prochaine question."""
@@ -552,7 +576,7 @@ class VueClassinus(ttk.Frame):
         elif kind == "pieces":
             self._texte_pieces = valeur
         elif kind == "modeles":
-            self._btn_modele.definir_modeles(valeur)
+            self._btn_modele.definir_modeles(*valeur)
             if self._btn_modele.a_des_modeles():
                 self._btn_modele.grid()
             else:

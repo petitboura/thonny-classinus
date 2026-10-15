@@ -227,5 +227,10 @@ def definir_langue(choix, langue_thonny=""):
     _langue = code if code in TEXTES else "fr"
 
 
+def langue():
+    """La langue active du panneau (fr ou en)."""
+    return _langue
+
+
 def t(cle):
     return TEXTES.get(_langue, TEXTES["fr"]).get(cle) or TEXTES["fr"].get(cle, cle)
