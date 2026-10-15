@@ -9,6 +9,7 @@ import webbrowser
 from tkinter import filedialog, messagebox, ttk
 
 from . import adresses, connexion, contexte, conversation, editeur, fichier_classinus, mise_en_forme, parametres_conversation, pieces_jointes
+from .fenetre_historique import FenetreHistorique
 from .erreurs import ErreurClassinus
 from .flux import EchangeEnCours
 from .menus import BoutonModele, BoutonReglages
@@ -77,9 +78,14 @@ class VueClassinus(ttk.Frame):
         self._lbl_etat.grid(row=0, column=0, sticky="w")
         self._btn_connexion = ttk.Button(haut, style=STYLE_BOUTON, command=self._basculer_connexion)
         self._btn_connexion.grid(row=0, column=1, sticky="e")
-        self._btn_modele = BoutonModele(haut, STYLE_MENU)
-        self._btn_modele.grid(row=1, column=0, columnspan=2, sticky="w", pady=(4, 0))
+        barre = ttk.Frame(haut)
+        barre.grid(row=1, column=0, columnspan=2, sticky="w", pady=(4, 0))
+        self._btn_modele = BoutonModele(barre, STYLE_MENU)
+        self._btn_modele.grid(row=0, column=0, sticky="w", padx=(0, 4))
         self._btn_modele.grid_remove()  # visible seulement quand le serveur propose des modeles
+        self._btn_historique = ttk.Button(barre, style=STYLE_BOUTON_LARGE, command=self._ouvrir_historique)
+        self._btn_historique.grid(row=0, column=1, sticky="w")
+        self._fenetre_historique = None
 
         zone = ttk.Frame(self)
         zone.grid(row=1, column=0, sticky="nsew", padx=6)
@@ -117,12 +123,8 @@ class VueClassinus(ttk.Frame):
 
         options = ttk.Frame(self)
         options.grid(row=4, column=0, sticky="ew", padx=6, pady=(4, 0))
-        self._options = options
-        self._reglages_dessous = None
-        self._btn_joindre = ttk.Button(options, style=STYLE_BOUTON_LARGE, command=self._joindre)
-        self._btn_joindre.grid(row=0, column=0, sticky="w")
         self._btn_reglages = BoutonReglages(options, STYLE_MENU, self._choix_conversation)
-        options.bind("<Configure>", self._reorganiser_options)
+        self._btn_reglages.grid(row=0, column=0, sticky="w")
         self._cadre_pieces = ttk.Frame(self)
         self._cadre_pieces.grid(row=5, column=0, sticky="ew", padx=6)
 
@@ -137,9 +139,10 @@ class VueClassinus(ttk.Frame):
         envoi.rowconfigure(0, weight=1)
         self._btn_envoyer = ttk.Button(envoi, style=STYLE_BOUTON, command=self._envoyer_ou_arreter)
         self._btn_envoyer.grid(row=0, column=0, sticky="nsew")
-        self._btn_code = ttk.Button(envoi, style=STYLE_BOUTON, command=self._envoyer_code)
-        self._btn_code.grid(row=1, column=0, sticky="ew", pady=(2, 0))
+        self._btn_joindre = ttk.Button(envoi, style=STYLE_BOUTON, command=self._joindre)
+        self._btn_joindre.grid(row=1, column=0, sticky="ew", pady=(2, 0))
         self._saisie.bind("<Return>", self._sur_entree)
+        self._saisie.bind("<Control-Shift-Return>", self._sur_envoi_code)
         self._saisie.bind("<FocusIn>", self._saisie_focus)
         self._saisie.bind("<FocusOut>", self._saisie_perd_focus)
         self._afficher_placeholder()
@@ -166,22 +169,6 @@ class VueClassinus(ttk.Frame):
         for i, bouton in enumerate(self._boutons_action):
             bouton.grid(row=i // colonnes, column=i % colonnes, sticky="ew", padx=1, pady=1)
 
-    def _reorganiser_options(self, _evt=None):
-        """« Joindre un fichier » garde tout son texte : « Reglages » passe a la ligne quand la place manque."""
-        largeur = self._options.winfo_width()
-        besoin = self._btn_joindre.winfo_reqwidth() + self._btn_reglages.winfo_reqwidth() + 8
-        dessous = largeur > 1 and largeur < besoin
-        if dessous == self._reglages_dessous:
-            return
-        self._reglages_dessous = dessous
-        self._options.columnconfigure(0, weight=0, minsize=self._btn_joindre.winfo_reqwidth())
-        self._options.columnconfigure(1, weight=0 if dessous else 1)
-        self._btn_joindre.grid(row=0, column=0, sticky="w")
-        if dessous:
-            self._btn_reglages.grid(row=1, column=0, columnspan=2, sticky="w", pady=(2, 0))
-        else:
-            self._btn_reglages.grid(row=0, column=1, columnspan=1, sticky="e", pady=0)
-
     # ---------- saisie ----------
     def _afficher_placeholder(self):
         if not self._saisie.get("1.0", "end-1c") and self.focus_get() is not self._saisie:
@@ -207,6 +194,12 @@ class VueClassinus(ttk.Frame):
             self._envoyer()
         return "break"
 
+    def _sur_envoi_code(self, _event):
+        """Ctrl+Maj+Entree : envoie le code de l'editeur, comme l'ancien bouton « Envoyer mon code »."""
+        if not self._occupe:
+            self._envoyer_code()
+        return "break"
+
     # ---------- affichage ----------
     def _ecrire(self, texte, *tags):
         w = self._historique_txt
@@ -220,7 +213,6 @@ class VueClassinus(ttk.Frame):
     def _maj_boutons(self):
         self._btn_envoyer.configure(text=t("arreter") if self._occupe else t("envoyer"))
         libre = "disabled" if self._occupe else "normal"
-        self._btn_code.configure(text=t("envoyer_code"), state=libre)
         for bouton, cle in zip(
             self._boutons_action,
             ("corriger_code", "expliquer_erreur", "expliquer_selection", "nouvelle_conversation"),
@@ -231,7 +223,7 @@ class VueClassinus(ttk.Frame):
             state="disabled" if self._occupe else "normal",
         )
         self._btn_joindre.configure(text=t("joindre"), state=libre)
-        self._options.after_idle(self._reorganiser_options)
+        self._btn_historique.configure(text=t("historique"), state=libre)
         self._btn_reglages.activer(not self._occupe)
         self._btn_modele.activer(not self._occupe)
         self.after_idle(self._reorganiser_actions)
@@ -340,6 +332,37 @@ class VueClassinus(ttk.Frame):
         self._en_attente = {}
         self._btn_reglages.nouvelle_conversation()
         mise_en_forme.vider(self._historique_txt)
+
+    def _ouvrir_historique(self):
+        if self._occupe:
+            return
+        if self._fenetre_historique is not None and self._fenetre_historique.winfo_exists():
+            self._fenetre_historique.lift()
+            return
+        self._fenetre_historique = FenetreHistorique(self, self._charger_fil)
+
+    def _charger_fil(self, cle, messages):
+        """Affiche la conversation choisie dans l'historique et la reprend : la prochaine question la continue."""
+        if self._occupe:
+            return
+        self._nouvelle_conversation()
+        chemin = [m for m in messages if m.get("role") in ("user", "assistant") and (m.get("content") or "").strip()]
+        w = self._historique_txt
+        w.configure(state="normal")
+        for m in chemin:
+            contenu = m["content"].strip()
+            if m["role"] == "user":
+                w.insert(tk.END, "\n")
+                w.insert(tk.END, contenu + "\n", ("utilisateur",))
+            else:
+                mise_en_forme.inserer(w, contenu, "assistant", self._boutons_bloc)
+        w.configure(state="disabled")
+        w.see(tk.END)
+        self._historique = [{"role": m["role"], "content": m["content"].strip()} for m in chemin]
+        if cle != "legacy":
+            self._fil.identifiant = cle
+        assistants = [m["id"] for m in chemin if m["role"] == "assistant" and isinstance(m.get("id"), int)]
+        self._fil.dernier = assistants[-1] if assistants else None
 
     def _lancer_echange(self, message, ctx, vider_saisie, affichage=None):
         if not connexion.est_connecte():

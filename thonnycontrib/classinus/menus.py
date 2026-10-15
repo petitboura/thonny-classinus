@@ -42,8 +42,12 @@ class BoutonModele(ttk.Menubutton):
         self.configure(menu=self._menu)
 
     def definir_modeles(self, modeles, bientot=()):
-        self._modeles = [m for m in modeles if m.get("modele_id")]
-        self._bientot = [m for m in bientot if m.get("modele_id")] if self._modeles else []
+        self._bientot = [m for m in bientot if m.get("modele_id")]
+        a_venir = {m["modele_id"] for m in self._bientot}
+        # un modele « bientot » n'est jamais choisissable, meme si le serveur l'envoyait aussi comme utilisable
+        self._modeles = [m for m in modeles if m.get("modele_id") and m["modele_id"] not in a_venir]
+        if not self._modeles:
+            self._bientot = []
         self._construire_menu()
         self._variable.set(self.identifiant() or "")
         self._maj_bouton()
@@ -101,7 +105,11 @@ class BoutonModele(ttk.Menubutton):
         return mots.get(langue()) or mots.get("fr") or next(iter(mots.values()), "Bientôt")
 
     def _choisir(self):
-        reglages.ecrire("modele", self._variable.get())
+        choix = self._variable.get()
+        if not any(m["modele_id"] == choix for m in self._modeles):
+            self._variable.set(self.identifiant() or "")
+            return
+        reglages.ecrire("modele", choix)
         self._maj_bouton()
 
     def _maj_bouton(self):
