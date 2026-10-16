@@ -1,9 +1,9 @@
 """Logos des fournisseurs de modeles, en petites images PNG de 16 pixels (texte base64).
 
 Source : bibliotheque d'icones libre @lobehub/icons-static-svg 1.95.1 (licence MIT), icones
-deepseek-color, claude-color, gemini-color et openai, converties en PNG. Les logos restent des
+deepseek-color, claude-color, gemini-color, openai et grok, converties en PNG (les memes que celles du site). Les logos restent des
 marques de leurs societes : ils servent ici seulement a nommer le modele choisi.
-"gpt_sombre" est le logo OpenAI en blanc, pour les themes sombres de Thonny.
+"gpt_sombre" et "grok_sombre" sont les logos OpenAI et Grok en blanc, pour les themes sombres de Thonny.
 """
 
 LOGOS = {
@@ -21,5 +21,11 @@ LOGOS = {
     ),
     "gpt_sombre": (
         "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAABuklEQVQ4jW3TT2jPYRwH8Pd3zRQTjeyiTBPZQTHGSi47iMgJFxcpJTnJQU4uQi5uJleKWv7mTzZrJWssh2HNCEvUyoHE9eXgoV8/v6eenufzfD6f9+f9fP4kdQt9eIrv+Ip+LEYr5tbb1zvvwgR6UWERnuAnPhfQG1jeyLnCFDqK3INR3ENXeWvBUXzAklrnLtzCaJHPYBLbi7wOZ7GsRn86SZqwJsmjJFNJfhXMviS7k4yjP8lAkuYkYziZ5G6SLX+j38b+EmWovD3HeXzCD5zEHCzFJcxiMEmakmxNcq1BTpcm2ZRkddkTSdZXVXUoyY4kK7Ap+Ia5hcHLUq7n6KzJUWdhM4Y7WIidGGxKMpxkb5LJJENJXiX5v0zJbJLeJG2F0f0kPcEqfMSeEm0NHmIE3WWPYLzoH5QSt2K2qaqq6SQzSU7hcZKWqqq2Jbma5Fk5BxowOlyqkWAYm7EP73GzdN7x0jxr6xhcxzTa/wKcwMVyn4eDaEczjmAGR4p+HOfQ9o8L5uMFLpSMt9bMxZWaDtyIZw2+k2BBadE3+IK3ZRY2oAMH8A7dDQEaALbgmD+j/RqXsbLe7jcnFQIn0bwHrwAAAABJRU5ErkJggg=="
+    ),
+    "grok": (
+        "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAABHElEQVQ4jaXTvSuFYRjH8U/HS4mYTkYDceiUlNfNYjIwymyRweo/8DKxGAwmg2wYhEV2WYiBskspeSlyDOdST083Kdf0XM/v/l6/330/98P/qqXmH3AfFH4Qh7GJC9zgCHNoyOhjuMuDBazhEx84xwnucYbRgB9QTDkvo4I9tGXef291CI+4TsHd4XqQAbI1GHAFV6kBixG9M6ENhOsETvGK+vyiQ9UDy1c/dtAa/UKkKEFtZmE9XnJwb7hPRTrhDnV5p40Qm6MvoieRaAvvaMoL4xFtJfrUHSnhDbsJTUcM2P4BLuM2UpZTA2axqnoW0zjGOpawH7GfMZmC2zETz3WYx2UkquBJde9dKbiIkZSARtXP9+tPl7zTf60vnM054hK+ptAAAAAASUVORK5CYII="
+    ),
+    "grok_sombre": (
+        "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAABRUlEQVQ4jaXSPWuVURAE4DmJCYhBq0tKC8UkGhDB+NHZCIJFGgvBSrCRFHbiPxDtbC2sLMRKbUQrsRcbxYAR0osgComo5LHIXry+eS8I2WbP7uzMzoFNdhE4MLkL8okkmRgDnsEDvMMaXmIFe4d4kvOttfUucQL3sIXfeItX+Iw3OFfiXzDo23zHdjzDwZH+ZOXT+IrVPvJCbX0+JHTwU0WGD30Ct8v6kR5sCatYxmtsYro79AJrPeSTeIzZqm+Vi/kk2TMyO51ko0M+nmQpyeXW2la1NytPdTfdL2v7qx7gaI+jh/iFmS5wsazdrXrHjWAeP/C0iwWHS+DRGPIiPpXLxWG/jQxcTzKX5GaSS0muJvmY5FuSY0kuJPmZ5Epr7UlX/RCu1XsKN/De3/hef5/rsz7A2R3ANrYPs32H9Y/AWPA/4g8gc1i2vyblfQAAAABJRU5ErkJggg=="
     ),
 }

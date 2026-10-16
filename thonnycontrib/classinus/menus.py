@@ -12,8 +12,8 @@ from .icones import Icones
 from .textes import langue, t
 
 LONGUEUR_MAX_MODELE = 22
-ORDRE_DISTRIBUTEURS = ("claude", "gpt", "gemini", "deepseek")
-NOMS_DISTRIBUTEURS = {"claude": "Claude", "gpt": "GPT", "gemini": "Gemini", "deepseek": "DeepSeek"}
+ORDRE_DISTRIBUTEURS = ("claude", "gpt", "gemini", "deepseek", "grok")
+NOMS_DISTRIBUTEURS = {"claude": "Claude", "gpt": "GPT", "gemini": "Gemini", "deepseek": "DeepSeek", "grok": "Grok"}
 
 EFFORTS = ("none", "low", "high", "max")
 EFFORT_PAR_DEFAUT = "low"  # le meme que celui du serveur et du site

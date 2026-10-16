@@ -60,7 +60,7 @@ def _dessiner(forme):
 
 
 def _theme_sombre(widget):
-    """Vrai si le fond des panneaux de Thonny est sombre (le logo OpenAI est noir : il faut alors le blanc)."""
+    """Vrai si le fond des panneaux de Thonny est sombre (les logos OpenAI et Grok sont noirs : il faut alors le blanc)."""
     try:
         fond = ttk.Style(widget).lookup("TFrame", "background") or "#ffffff"
         rouge, vert, bleu = (c // 257 for c in widget.winfo_rgb(fond))
@@ -77,8 +77,8 @@ class Icones:
         self._images = {}
 
     def obtenir(self, cle):
-        if cle == "gpt" and _theme_sombre(self._widget):
-            cle = "gpt_sombre"
+        if cle in ("gpt", "grok") and _theme_sombre(self._widget):
+            cle += "_sombre"
         if cle not in self._images:
             if cle in LOGOS:
                 donnees = LOGOS[cle].encode("ascii")

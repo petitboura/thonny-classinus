@@ -11,9 +11,9 @@ import tkinter.font as tkfont
 from . import adresses, coloration, couleurs, tableaux
 
 _GRAS_ITALIQUE = re.compile(r"\*\*\*(.+?)\*\*\*")
-_GRAS = re.compile(r"\*\*(.+?)\*\*")
+_GRAS = re.compile(r"\*\*(?!\s)((?:[^*]|\*[^*\n]+?\*)+?)(?<!\s)\*\*(?!\*)")
 # Un seul astérisque de chaque côté, collé au texte : « 2 * 3 * 4 » et « 2*3*4 » ne deviennent jamais de l'italique.
-_ITALIQUE = re.compile(r"(?<![\*\w])\*(?![\s\*])([^*\n]+?)(?<![\s\*])\*(?!\*)")
+_ITALIQUE = re.compile(r"(?<![\*\w])\*(?![\s\*])((?:[^*\n]|\*\*[^*\n]+?\*\*)+?)(?<![\s\*])\*(?!\*)")
 _CODE = re.compile(r"`([^`\n]+)`")
 _LIEN = re.compile(r"\[([^\]\n]+)\]\((https?://[^\s)]+)\)")
 _ADRESSE = re.compile(r"https?://[^\s<>\"')\]]+")

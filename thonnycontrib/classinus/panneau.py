@@ -8,9 +8,10 @@ import tkinter.font as tkfont
 import webbrowser
 from tkinter import filedialog, messagebox, ttk
 
-from . import adresses, connexion, contexte, conversation, editeur, fichier_classinus, lecteur, marque, mise_en_forme, parametres_conversation, pieces_jointes
+from . import adresses, connexion, contexte, conversation, dictee, editeur, fichier_classinus, lecteur, marque, mise_en_forme, parametres_conversation, pieces_jointes
 from .fenetre_historique import FenetreHistorique
 from .erreurs import ErreurClassinus
+from .dictee import Dictee
 from .flux import EchangeEnCours
 from .lecteur import Lecteur
 from .menus import BoutonModele, BoutonReglages
@@ -57,7 +58,10 @@ class VueClassinus(ttk.Frame):
         self._en_attente = {}  # choix de la conversation pas encore enregistres sur le serveur
         self._lecteur = Lecteur()
         self._bas_visible = False
-        self.bind("<Destroy>", lambda evt: self._lecteur.arreter() if evt.widget is self else None)
+        self._dictee = Dictee()
+        self._dictee_transcrit = False
+        self._arret_dictee_auto = None
+        self.bind("<Destroy>", self._sur_destruction)
         self._construire()
         self._maj_etat_connexion()
         threading.Thread(target=self._charger_modeles, daemon=True).start()
@@ -139,6 +143,8 @@ class VueClassinus(ttk.Frame):
         options.grid(row=4, column=0, sticky="ew", padx=6, pady=(4, 0))
         self._btn_reglages = BoutonReglages(options, STYLE_MENU, self._choix_conversation)
         self._btn_reglages.grid(row=0, column=0, sticky="w")
+        self._btn_dicter = ttk.Button(options, style=STYLE_BOUTON, command=self._dicter_ou_arreter)
+        self._btn_dicter.grid(row=0, column=1, sticky="w", padx=(6, 0))
         self._cadre_pieces = ttk.Frame(self)
         self._cadre_pieces.grid(row=5, column=0, sticky="ew", padx=6)
 
@@ -261,6 +267,10 @@ class VueClassinus(ttk.Frame):
         )
         self._btn_historique.configure(text=t("historique"), state=libre)
         self._btn_lire.configure(text=t("arreter_lecture") if self._lecteur.en_cours() else t("lire"), state=libre)
+        self._btn_dicter.configure(
+            text=t("arreter_dictee") if self._dictee.active() else t("dicter"),
+            state="disabled" if self._dictee_transcrit else "normal",
+        )
         self._btn_reglages.activer(not self._occupe)
         self._btn_modele.activer(not self._occupe)
         self.after_idle(self._reorganiser_actions)
@@ -280,6 +290,11 @@ class VueClassinus(ttk.Frame):
         elif self._connexion_en_cours:
             self._image = (self._image + 1) % len(IMAGES_ATTENTE)
             self._lbl_statut.configure(text="%s %s" % (IMAGES_ATTENTE[self._image], t("connexion_en_cours")))
+        elif self._dictee.active():
+            self._lbl_statut.configure(text="\u25cf %s" % t("dictee_ecoute"))
+        elif self._dictee_transcrit:
+            self._image = (self._image + 1) % len(IMAGES_ATTENTE)
+            self._lbl_statut.configure(text="%s %s" % (IMAGES_ATTENTE[self._image], t("dictee_transcription")))
         else:
             self._lbl_statut.configure(text="")
         self.after(120, self._animer)
@@ -370,6 +385,63 @@ class VueClassinus(ttk.Frame):
         self._en_attente = {}
         self._btn_reglages.nouvelle_conversation()
         mise_en_forme.vider(self._historique_txt)
+
+    def _sur_destruction(self, evt):
+        if evt.widget is self:
+            self._lecteur.arreter()
+            self._dictee.arreter()
+
+    # ---------- dictee ----------
+    def _dicter_ou_arreter(self):
+        """Premier clic : le micro enregistre. Second clic : l'enregistrement est transcrit en un seul envoi."""
+        if self._dictee.active():
+            self._arreter_dictee()
+            return
+        if not connexion.est_connecte():
+            self._ecrire(t("err_connexion_requise") + "\n", "erreur")
+            return
+        try:
+            self._dictee.demarrer()
+        except ErreurClassinus as e:
+            self._ecrire(t(e.cle_texte) + "\n", "erreur")
+            return
+        self._arret_dictee_auto = self.after(dictee.DUREE_MAX_SECONDES * 1000, self._arreter_dictee)
+        self._maj_boutons()
+
+    def _arreter_dictee(self):
+        if not self._dictee.active():
+            return
+        if self._arret_dictee_auto is not None:
+            self.after_cancel(self._arret_dictee_auto)
+            self._arret_dictee_auto = None
+        son = self._dictee.arreter()
+        if son is None:
+            self._ecrire(t("err_dictee_vide") + "\n", "erreur")
+            self._maj_boutons()
+            return
+        self._dictee_transcrit = True
+        self._maj_boutons()
+
+        def tache():
+            try:
+                self._file.put(("dictee_texte", dictee.transcrire(son)))
+            except ErreurClassinus as e:
+                self._file.put(("dictee_erreur", (e.cle_texte, e.detail)))
+            except Exception as e:
+                self._file.put(("dictee_erreur", ("err_reseau", ("%s: %s" % (type(e).__name__, e))[:160])))
+
+        threading.Thread(target=tache, daemon=True).start()
+
+    def _inserer_dictee(self, texte):
+        """Le texte dicté est posé là où est le curseur de la zone de saisie, jamais envoyé tout seul."""
+        saisie = self._saisie
+        if saisie.tag_ranges("indice"):
+            saisie.delete("1.0", "end")
+        avant = saisie.get("1.0", "insert")
+        if avant and not avant[-1].isspace():
+            texte = " " + texte
+        saisie.insert("insert", texte)
+        saisie.focus_set()
 
     def _lire_ou_arreter(self):
         """Lit la dernière réponse avec la voix de l'ordinateur ; un second clic arrête, un nouveau clic reprend au début."""
@@ -672,6 +744,14 @@ class VueClassinus(ttk.Frame):
                     self.after(DELAI_RENDU_MS, self._rendu_progressif)
         elif kind == "lecture_finie":
             self._maj_boutons()
+        elif kind == "dictee_texte":
+            self._dictee_transcrit = False
+            self._maj_boutons()
+            self._inserer_dictee(valeur)
+        elif kind == "dictee_erreur":
+            self._dictee_transcrit = False
+            self._maj_boutons()
+            self._traiter("erreur", valeur)
         elif kind == "statut":
             self._statut_outil = valeur
         elif kind == "statut_fin":
