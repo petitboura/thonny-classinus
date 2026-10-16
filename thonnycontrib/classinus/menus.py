@@ -107,7 +107,7 @@ class BoutonModele(ttk.Menubutton):
     def _mot_bientot(modele):
         """Le mot « Bientot » dans la langue du panneau, tel que reglé dans Supabase."""
         mots = modele.get("libelles_bientot") or {}
-        return mots.get(langue()) or mots.get("fr") or next(iter(mots.values()), "Bientôt")
+        return mots.get(langue()) or t("bientot")
 
     def _choisir(self):
         choix = self._variable.get()

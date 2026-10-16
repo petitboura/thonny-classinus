@@ -8,7 +8,7 @@ plugin annonce donc son nom et sa version, lue dans le paquet installe.
 NOM = "Classinus-Thonny"
 
 
-def _version():
+def version_installee():
     try:
         from importlib.metadata import version
 
@@ -18,4 +18,4 @@ def _version():
 
 
 def agent_utilisateur():
-    return "%s/%s" % (NOM, _version())
+    return "%s/%s" % (NOM, version_installee())

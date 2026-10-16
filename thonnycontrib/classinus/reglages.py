@@ -5,7 +5,7 @@ import os
 
 from thonny import get_workbench
 
-_CLES = ("backend_url", "supabase_url", "langue", "longueur", "modele", "effort")
+_CLES = ("backend_url", "supabase_url", "langue", "longueur", "modele", "effort", "derniere_verification_maj", "version_connue", "version_ignoree")
 
 
 def _defauts_paquet():

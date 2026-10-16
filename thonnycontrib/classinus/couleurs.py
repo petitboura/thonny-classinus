@@ -24,6 +24,11 @@ def melanger(widget, cible, ratio):
     return _hex(tuple(b + (c - b) * ratio for b, c in zip(_fond(widget), cible)))
 
 
+def vers(widget, couleur, ratio):
+    """Le fond du widget, teinte de `ratio` vers une couleur nommee (par exemple celle du texte)."""
+    return melanger(widget, _rgb(widget, couleur), ratio)
+
+
 def nuance(widget):
     """Un fond tres legerement different de celui du widget (code en ligne, blocs de code)."""
     if est_sombre(widget):

@@ -1,304 +1,79 @@
-"""Tous les textes affiches, par langue. Aucune chaine visible ailleurs."""
+"""Tous les textes affiches, par langue. Aucune chaine visible ailleurs.
 
-TEXTES = {
-    "fr": {
-        "titre_panneau": "Classinus",
-        "non_connecte": "Non connecté",
-        "connecte": "Connecté",
-        "se_connecter": "Se connecter",
-        "se_deconnecter": "Se déconnecter",
-        "connexion_en_cours": "Connexion en cours, termine dans ton navigateur...",
-        "envoyer": "Envoyer",
-        "arreter": "Arrêter",
-        "placeholder": "Pose ta question à Classinus (Entrée pour envoyer, Maj+Entrée pour un retour à la ligne, Ctrl+Maj+Entrée pour envoyer ton code)",
-        "reflechit": "Classinus réfléchit",
-        "arrete": "Réponse arrêtée.",
-        "connecte_ok": "Tu es connecté à Classinus.",
-        "deconnecte_ok": "Tu es déconnecté.",
-        "titre_reglages": "Classinus",
-        "reglage_backend": "Adresse du serveur Classinus",
-        "reglage_supabase": "Adresse du service de connexion",
-        "reglage_langue": "Langue du panneau (auto, fr, en)",
-        "reglage_info": "Laisse vide pour garder les valeurs par défaut du plugin.",
-        "navigateur_titre": "Classinus",
-        "navigateur_ok": "Connexion réussie. Tu peux fermer cet onglet et revenir dans Thonny.",
-        "navigateur_echec": "La connexion a échoué. Reviens dans Thonny et réessaie.",
-        "err_adresse_manquante": "L'adresse du serveur Classinus n'est pas réglée. Ouvre Outils > Options > Classinus.",
-        "err_connexion_requise": "Connecte-toi d'abord à Classinus avec le bouton en haut du panneau.",
-        "err_session_expiree": "Ta connexion a expiré. Clique sur Se connecter pour recommencer.",
-        "err_reseau": "Impossible de joindre Classinus. Vérifie ta connexion internet puis réessaie.",
-        "err_trop_de_messages": "Tu envoies trop de messages à la suite. Attends une minute puis réessaie.",
-        "err_serveur": "Classinus a un souci en ce moment. Réessaie dans un instant.",
-        "err_connexion_echec": "La connexion à Classinus a échoué. Réessaie.",
-        "err_connexion_delai": "Le délai de connexion est dépassé. Clique sur Se connecter pour recommencer.",
-        "err_service_connexion": "Le service de connexion de Classinus ne répond pas comme prévu. Réessaie plus tard.",
-        "err_confirmation": "Classinus demande une confirmation pour une action. Ouvre Classinus sur le site pour la valider.",
-        "err_generique": "Une erreur est survenue. Réessaie.",
-        "nouvelle_conversation": "Nouvelle conversation",
-        "corriger_code": "Corriger mon code",
-        "expliquer_selection": "Expliquer ma sélection",
-        "question_correction": "Corrige mon code : dis-moi ce qui ne va pas, donne la version corrigée dans un bloc de code Python et explique chaque changement simplement.",
-        "question_selection": "Explique-moi cette partie de mon code, simplement et pas à pas.",
-        "aucune_selection": "Sélectionne d'abord une partie de ton code dans l'éditeur.",
-        "copier": "Copier",
-        "copie": "Copié",
-        "nouvel_onglet": "Nouvel onglet",
-        "onglet_ok": "Le code est ouvert dans un nouvel onglet. Enregistre-le pour le garder.",
-        "fichier_titre": "Fichier Classinus",
-        "fichier_titre_nom": "Fichier Classinus : %s",
-        "fichier_ouvrir_thonny": "Ouvrir dans Thonny",
-        "fichier_enregistrer": "Enregistrer sur mon ordinateur",
-        "fichier_ouvrir_navigateur": "Ouvrir dans le navigateur",
-        "fichier_annuler": "Annuler",
-        "fichier_telechargement": "Téléchargement en cours...",
-        "fichier_enregistre": "Fichier enregistré : %s",
-        "fichier_sans_nom": "fichier",
-        "err_fichier_telechargement": "Impossible de récupérer ou d'enregistrer ce fichier. Vérifie ta connexion et l'emplacement choisi, puis réessaie.",
-        "err_fichier_trop_gros": "Ce fichier est trop gros pour être ouvert dans Thonny. Enregistre-le sur ton ordinateur.",
-        "err_fichier_pas_du_texte": "Ce fichier n'est pas un texte que Thonny peut ouvrir. Enregistre-le sur ton ordinateur.",
-        "lien_titre": "Ouvrir ce site ?",
-        "lien_question": "Tu vas quitter Thonny pour ouvrir ce site dans ton navigateur :\n\n%s\n\nAdresse complète :\n%s\n\nContinuer ?",
-        "err_ligne_introuvable": "Cette ligne n'existe pas dans le fichier ouvert.",
-        "err_aucune_reponse": "Classinus n'a renvoyé aucune réponse. Réessaie.",
-        "detail_technique": "(détail : %s)",
-        "envoyer_code": "Envoyer mon code",
-        "expliquer_erreur": "Expliquer cette erreur",
-        "inserer": "Insérer",
-        "question_code": "Regarde mon code : qu'est-ce qui va bien et qu'est-ce que je peux améliorer ?",
-        "question_erreur": "Explique-moi cette erreur et comment la corriger.",
-        "code_envoye": "Code envoyé à Classinus : %s",
-        "sans_nom": "fichier sans nom",
-        "aucun_code": "Il n'y a pas de code à envoyer. Ouvre un fichier dans l'éditeur.",
-        "aucune_erreur": "Aucune erreur à expliquer pour le moment. Lance ton script d'abord.",
-        "inserer_titre": "Insérer dans l'éditeur",
-        "inserer_question": "Insérer ce code dans l'éditeur ?\n\n%s",
-        "inserer_remplace": "Il remplacera la partie que tu as sélectionnée. Tu pourras annuler avec Ctrl+Z.",
-        "inserer_ok": "Code inséré dans l'éditeur. Tu peux annuler avec Ctrl+Z.",
-        "err_aucun_editeur": "Ouvre d'abord un fichier dans l'éditeur pour y insérer du code.",
-        "joindre": "Joindre un fichier",
-        "historique": "Historique",
-        "dicter": "Dicter",
-        "arreter_dictee": "Arrêter la dictée",
-        "dictee_ecoute": "Je t'écoute, clique sur Arrêter la dictée quand tu as fini",
-        "dictee_transcription": "Transcription en cours",
-        "err_dictee_bibliotheque": "La dictée a besoin de la bibliothèque du micro. Réinstalle le plugin thonny-classinus (sous Linux, installe aussi libportaudio2).",
-        "err_dictee_micro": "Impossible d'utiliser le micro. Vérifie qu'il est branché et que Thonny a le droit de l'utiliser.",
-        "err_dictee_vide": "Aucun son n'a été enregistré.",
-        "err_dictee_echec": "La dictée n'a pas marché : %s",
-        "lire": "Lire la réponse",
-        "arreter_lecture": "Arrêter la lecture",
-        "aucune_reponse_a_lire": "Il n'y a pas encore de réponse à lire.",
-        "lecture_indisponible": "La voix de l'ordinateur est introuvable. Sous Linux, installe espeak-ng pour écouter les réponses.",
-        "historique_titre": "Historique des conversations",
-        "historique_epingles": "Épinglés",
-        "historique_vide": "Aucune conversation pour le moment.",
-        "historique_erreur": "L'historique n'a pas pu être chargé. Réessaie dans un instant.",
-        "historique_ouverture_erreur": "Cette conversation n'a pas pu être ouverte. Réessaie dans un instant.",
-        "historique_charger_plus": "Voir plus",
-        "historique_epingler": "Épingler",
-        "historique_desepingler": "Désépingler",
-        "historique_renommer": "Renommer",
-        "historique_supprimer": "Supprimer",
-        "historique_renommer_question": "Nouveau titre de la conversation :",
-        "historique_supprimer_question": "Supprimer définitivement cette conversation ? Cette action est irréversible.",
-        "historique_action_erreur": "Cette action n'a pas pu être faite. Réessaie dans un instant.",
-        "historique_chargement": "Chargement...",
-        "histo_aujourdhui": "Aujourd'hui",
-        "histo_hier": "Hier",
-        "histo_avant_hier": "Avant-hier",
-        "histo_semaines": "Il y a %d Sem",
-        "histo_mois_dernier": "Mois dernier",
-        "histo_plus_ancien": "Plus ancien",
-        "histo_mois": "Janvier|Février|Mars|Avril|Mai|Juin|Juillet|Août|Septembre|Octobre|Novembre|Décembre",
-        "envoi_fichier": "Lecture du fichier : %s",
-        "choisir_fichier": "Photo ou document à joindre",
-        "question_fichier": "Regarde le fichier que je t'ai joint.",
-        "longueur_courte": "Courte",
-        "longueur_moyenne": "Moyenne",
-        "longueur_longue": "Longue",
-        "reglages": "Réglages",
-        "reglage_longueur": "Longueur de réponse",
-        "reglage_effort": "Effort",
-        "reglage_persona": "Mode pédagogique",
-        "reglage_source": "Modes ressources",
-        "effort_none": "Aucun",
-        "effort_low": "Faible",
-        "effort_high": "Élevé",
-        "effort_max": "Maximum",
-        "persona_aucun": "Aucun mode",
-        "persona_socratique": "Socratique",
-        "persona_professeur": "Professeur",
-        "persona_tuteur": "Tuteur",
-        "persona_examinateur": "Examinateur",
-        "source_aucun": "Aucun",
-        "source_recherche": "Recherche",
-        "source_sur_pieces": "Sur pièces",
-        "err_piece_illisible": "Impossible de lire ce fichier : %s",
-        "err_piece_vide": "Ce fichier est vide : %s",
-        "err_piece_type": "Ce type de fichier ne peut pas être joint ici : %s",
-        "err_piece_trop_lourde": "Ce fichier est trop lourd (5 Mo pour une photo, 15 Mo pour un document) : %s",
-        "err_piece_refusee": "Le fichier n'a pas pu être envoyé. %s",
-        "err_trop_de_pieces": "Tu peux joindre 5 fichiers au maximum.",
-    },
-    "en": {
-        "titre_panneau": "Classinus",
-        "non_connecte": "Not signed in",
-        "connecte": "Signed in",
-        "se_connecter": "Sign in",
-        "se_deconnecter": "Sign out",
-        "connexion_en_cours": "Signing in, finish in your browser...",
-        "envoyer": "Send",
-        "arreter": "Stop",
-        "placeholder": "Ask Classinus a question (Enter to send, Shift+Enter for a new line, Ctrl+Shift+Enter to send your code)",
-        "reflechit": "Classinus is thinking",
-        "arrete": "Answer stopped.",
-        "connecte_ok": "You are signed in to Classinus.",
-        "deconnecte_ok": "You are signed out.",
-        "titre_reglages": "Classinus",
-        "reglage_backend": "Classinus server address",
-        "reglage_supabase": "Sign-in service address",
-        "reglage_langue": "Panel language (auto, fr, en)",
-        "reglage_info": "Leave empty to keep the plugin defaults.",
-        "navigateur_titre": "Classinus",
-        "navigateur_ok": "Signed in. You can close this tab and go back to Thonny.",
-        "navigateur_echec": "Sign-in failed. Go back to Thonny and try again.",
-        "err_adresse_manquante": "The Classinus server address is not set. Open Tools > Options > Classinus.",
-        "err_connexion_requise": "Sign in to Classinus first with the button at the top of the panel.",
-        "err_session_expiree": "Your session has expired. Click Sign in to start again.",
-        "err_reseau": "Cannot reach Classinus. Check your internet connection and try again.",
-        "err_trop_de_messages": "You are sending too many messages in a row. Wait a minute and try again.",
-        "err_serveur": "Classinus has a problem right now. Try again in a moment.",
-        "err_connexion_echec": "Signing in to Classinus failed. Try again.",
-        "err_connexion_delai": "Sign-in timed out. Click Sign in to start again.",
-        "err_service_connexion": "The Classinus sign-in service is not answering as expected. Try again later.",
-        "err_confirmation": "Classinus needs a confirmation for an action. Open Classinus on the website to approve it.",
-        "err_generique": "Something went wrong. Try again.",
-        "nouvelle_conversation": "New conversation",
-        "corriger_code": "Fix my code",
-        "expliquer_selection": "Explain my selection",
-        "question_correction": "Fix my code: tell me what is wrong, give the corrected version in a Python code block and explain each change simply.",
-        "question_selection": "Explain this part of my code to me, simply and step by step.",
-        "aucune_selection": "Select part of your code in the editor first.",
-        "copier": "Copy",
-        "copie": "Copied",
-        "nouvel_onglet": "New tab",
-        "onglet_ok": "The code is open in a new tab. Save it to keep it.",
-        "fichier_titre": "Classinus file",
-        "fichier_titre_nom": "Classinus file: %s",
-        "fichier_ouvrir_thonny": "Open in Thonny",
-        "fichier_enregistrer": "Save on my computer",
-        "fichier_ouvrir_navigateur": "Open in the browser",
-        "fichier_annuler": "Cancel",
-        "fichier_telechargement": "Downloading...",
-        "fichier_enregistre": "File saved: %s",
-        "fichier_sans_nom": "file",
-        "err_fichier_telechargement": "The file could not be fetched or saved. Check your connection and the chosen location, then try again.",
-        "err_fichier_trop_gros": "This file is too large to open in Thonny. Save it on your computer.",
-        "err_fichier_pas_du_texte": "This file is not a text Thonny can open. Save it on your computer.",
-        "lien_titre": "Open this site?",
-        "lien_question": "You are about to leave Thonny and open this site in your browser:\n\n%s\n\nFull address:\n%s\n\nContinue?",
-        "err_ligne_introuvable": "This line does not exist in the open file.",
-        "err_aucune_reponse": "Classinus sent no answer. Try again.",
-        "detail_technique": "(detail: %s)",
-        "envoyer_code": "Send my code",
-        "expliquer_erreur": "Explain this error",
-        "inserer": "Insert",
-        "question_code": "Look at my code: what is going well and what could I improve?",
-        "question_erreur": "Explain this error to me and how to fix it.",
-        "code_envoye": "Code sent to Classinus: %s",
-        "sans_nom": "unnamed file",
-        "aucun_code": "There is no code to send. Open a file in the editor.",
-        "aucune_erreur": "No error to explain right now. Run your script first.",
-        "inserer_titre": "Insert into editor",
-        "inserer_question": "Insert this code into the editor?\n\n%s",
-        "inserer_remplace": "It will replace the part you selected. You can undo with Ctrl+Z.",
-        "inserer_ok": "Code inserted in the editor. You can undo with Ctrl+Z.",
-        "err_aucun_editeur": "Open a file in the editor first to insert code into it.",
-        "joindre": "Attach a file",
-        "historique": "History",
-        "dicter": "Dictate",
-        "arreter_dictee": "Stop dictation",
-        "dictee_ecoute": "I'm listening, click Stop dictation when you are done",
-        "dictee_transcription": "Transcribing",
-        "err_dictee_bibliotheque": "Dictation needs the microphone library. Reinstall the thonny-classinus plugin (on Linux, also install libportaudio2).",
-        "err_dictee_micro": "The microphone cannot be used. Check that it is plugged in and that Thonny is allowed to use it.",
-        "err_dictee_vide": "No sound was recorded.",
-        "err_dictee_echec": "Dictation did not work: %s",
-        "lire": "Read the answer aloud",
-        "arreter_lecture": "Stop reading",
-        "aucune_reponse_a_lire": "There is no answer to read yet.",
-        "lecture_indisponible": "The computer's voice was not found. On Linux, install espeak-ng to hear the answers.",
-        "historique_titre": "Conversation history",
-        "historique_epingles": "Pinned",
-        "historique_vide": "No conversation yet.",
-        "historique_erreur": "The history could not be loaded. Try again in a moment.",
-        "historique_ouverture_erreur": "This conversation could not be opened. Try again in a moment.",
-        "historique_charger_plus": "Show more",
-        "historique_epingler": "Pin",
-        "historique_desepingler": "Unpin",
-        "historique_renommer": "Rename",
-        "historique_supprimer": "Delete",
-        "historique_renommer_question": "New title for the conversation:",
-        "historique_supprimer_question": "Permanently delete this conversation? This cannot be undone.",
-        "historique_action_erreur": "This action could not be done. Try again in a moment.",
-        "historique_chargement": "Loading...",
-        "histo_aujourdhui": "Today",
-        "histo_hier": "Yesterday",
-        "histo_avant_hier": "2 days ago",
-        "histo_semaines": "%d wk ago",
-        "histo_mois_dernier": "Last month",
-        "histo_plus_ancien": "Older",
-        "histo_mois": "January|February|March|April|May|June|July|August|September|October|November|December",
-        "envoi_fichier": "Reading file: %s",
-        "choisir_fichier": "Photo or document to attach",
-        "question_fichier": "Look at the file I attached.",
-        "longueur_courte": "Short",
-        "longueur_moyenne": "Medium",
-        "longueur_longue": "Long",
-        "reglages": "Settings",
-        "reglage_longueur": "Answer length",
-        "reglage_effort": "Effort",
-        "reglage_persona": "Teaching mode",
-        "reglage_source": "Resource modes",
-        "effort_none": "None",
-        "effort_low": "Low",
-        "effort_high": "High",
-        "effort_max": "Maximum",
-        "persona_aucun": "No mode",
-        "persona_socratique": "Socratic",
-        "persona_professeur": "Teacher",
-        "persona_tuteur": "Tutor",
-        "persona_examinateur": "Examiner",
-        "source_aucun": "None",
-        "source_recherche": "Search",
-        "source_sur_pieces": "On documents",
-        "err_piece_illisible": "Cannot read this file: %s",
-        "err_piece_vide": "This file is empty: %s",
-        "err_piece_type": "This type of file cannot be attached here: %s",
-        "err_piece_trop_lourde": "This file is too large (5 MB for a photo, 15 MB for a document): %s",
-        "err_piece_refusee": "The file could not be sent. %s",
-        "err_trop_de_pieces": "You can attach 5 files at most.",
-    },
-}
+Chaque langue est un fichier du dossier `langues/` (`fr.py`, `en.py`...) qui donne `NOM` et `TEXTES`.
+Les langues sont decouvertes toutes seules : ajouter un fichier suffit, rien d'autre a declarer.
+Toute langue doit avoir exactement les memes cles que les autres (verifie par `tests/test_langues.py`),
+jamais une langue seule : le francais ne sert de repli que si une cle manque par accident.
+"""
 
-_langue = "fr"
+import importlib
+import pkgutil
+import re
+
+from . import langues as _paquet_langues
+
+LANGUE_REPLI = "fr"
+
+
+def _charger():
+    textes, noms = {}, {}
+    for info in pkgutil.iter_modules(_paquet_langues.__path__):
+        module = importlib.import_module("%s.%s" % (_paquet_langues.__name__, info.name))
+        textes[info.name] = module.TEXTES
+        noms[info.name] = getattr(module, "NOM", info.name)
+    return textes, noms
+
+
+TEXTES, NOMS_LANGUES = _charger()
+_langue = LANGUE_REPLI
+
+
+def langues_disponibles():
+    """Les codes des langues installees, dans l'ordre alphabetique (fr, en...)."""
+    return tuple(sorted(TEXTES))
+
+
+def nom_langue(code):
+    """Le nom d'une langue, ecrit dans cette langue (Français, English...)."""
+    return NOMS_LANGUES.get(code, code)
 
 
 def definir_langue(choix, langue_thonny=""):
-    """choix: 'auto', 'fr', 'en' ou vide. En auto on suit la langue de Thonny."""
+    """choix: 'auto', un code de langue installee ou vide. En auto on suit la langue de Thonny."""
     global _langue
     brut = (choix or "").strip().lower()
     if brut in TEXTES:
         _langue = brut
         return
     code = (langue_thonny or "").lower()[:2]
-    _langue = code if code in TEXTES else "fr"
+    _langue = code if code in TEXTES else LANGUE_REPLI
 
 
 def langue():
-    """La langue active du panneau (fr ou en)."""
+    """Le code de la langue active du panneau."""
     return _langue
 
 
 def t(cle):
-    return TEXTES.get(_langue, TEXTES["fr"]).get(cle) or TEXTES["fr"].get(cle, cle)
+    return TEXTES.get(_langue, TEXTES[LANGUE_REPLI]).get(cle) or TEXTES[LANGUE_REPLI].get(cle, cle)
+
+
+def _marqueurs(texte):
+    return sorted(re.findall(r"%[sd]", texte))
+
+
+def verifier():
+    """Liste les problemes de traduction (vide si tout est bon) : cle absente, texte vide, marqueurs %s ou %d differents."""
+    problemes = []
+    toutes = set().union(*(set(d) for d in TEXTES.values()))
+    for code in langues_disponibles():
+        textes = TEXTES[code]
+        for cle in sorted(toutes - set(textes)):
+            problemes.append("%s : la cle %s manque" % (code, cle))
+        for cle, valeur in textes.items():
+            if not str(valeur).strip():
+                problemes.append("%s : la cle %s est vide" % (code, cle))
+            reference = TEXTES[LANGUE_REPLI].get(cle)
+            if reference is not None and _marqueurs(str(valeur)) != _marqueurs(str(reference)):
+                problemes.append("%s : la cle %s n'a pas les memes %%s ou %%d que %s" % (code, cle, LANGUE_REPLI))
+    return problemes

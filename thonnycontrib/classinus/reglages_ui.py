@@ -5,7 +5,7 @@ from tkinter import ttk
 from thonny import get_workbench
 
 from . import reglages
-from .textes import definir_langue, t
+from .textes import definir_langue, langues_disponibles, t
 
 
 class PageReglages(ttk.Frame):
@@ -15,7 +15,8 @@ class PageReglages(ttk.Frame):
         self._champs = {}
         lignes = (("backend_url", "reglage_backend"), ("supabase_url", "reglage_supabase"), ("langue", "reglage_langue"))
         for i, (cle, libelle) in enumerate(lignes):
-            ttk.Label(self, text=t(libelle)).grid(row=i, column=0, sticky="w", padx=6, pady=4)
+            texte = t(libelle) % ", ".join(("auto",) + langues_disponibles()) if cle == "langue" else t(libelle)
+            ttk.Label(self, text=texte).grid(row=i, column=0, sticky="w", padx=6, pady=4)
             champ = ttk.Entry(self, width=40)
             champ.insert(0, get_workbench().get_option("classinus." + cle) or "")
             champ.grid(row=i, column=1, sticky="ew", padx=6, pady=4)

@@ -9,6 +9,8 @@
   "modele_par_defaut": "deepseek-v4-flash",
   "distributeur_par_defaut": "deepseek",
   "site_url": "https://classinus.com",
+  "mise_a_jour_url": "https://pypi.org/pypi/thonny-classinus/json",
+  "mise_a_jour_intervalle_heures": 24,
   "taille_max_texte": 1000000,
   "extensions_texte": [
     ".py",

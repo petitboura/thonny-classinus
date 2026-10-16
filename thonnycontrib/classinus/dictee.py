@@ -97,5 +97,5 @@ def transcrire(wav):
     except (urllib.error.URLError, OSError, ValueError) as e:
         raise ErreurClassinus("err_reseau", ("%s: %s" % (type(e).__name__, e))[:160])
     if not texte:
-        raise ErreurClassinus("err_dictee_echec", "rien n'a été compris")
+        raise ErreurClassinus("err_dictee_rien_compris")
     return texte

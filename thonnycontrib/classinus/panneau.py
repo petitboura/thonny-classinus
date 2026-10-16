@@ -8,7 +8,7 @@ import tkinter.font as tkfont
 import webbrowser
 from tkinter import filedialog, messagebox, ttk
 
-from . import adresses, connexion, contexte, conversation, dictee, editeur, fichier_classinus, lecteur, marque, mise_en_forme, parametres_conversation, pieces_jointes
+from . import adresses, connexion, contexte, conversation, couleurs, dictee, editeur, fichier_classinus, lecteur, marque, mise_a_jour, mise_en_forme, parametres_conversation, pieces_jointes
 from .fenetre_historique import FenetreHistorique
 from .erreurs import ErreurClassinus
 from .dictee import Dictee
@@ -24,6 +24,8 @@ STYLE_MENU = "Classinus.TMenubutton"
 DELAI_RENDU_MS = 120  # intervalle entre deux remises en forme de la reponse pendant qu'elle s'ecrit
 DUREE_COPIE_MS = 1500
 LONGUEUR_APERCU_ADRESSE = 200
+ETAPES_FONDU = 8  # le bandeau de mise a jour apparait et disparait en fondu
+PAS_FONDU_MS = 25
 
 
 def _curseur_lien():
@@ -61,9 +63,12 @@ class VueClassinus(ttk.Frame):
         self._dictee = Dictee()
         self._dictee_transcrit = False
         self._arret_dictee_auto = None
+        self._version_maj = ""
+        self._fondu_maj = None
         self.bind("<Destroy>", self._sur_destruction)
         self._construire()
         self._maj_etat_connexion()
+        self._verifier_mise_a_jour()
         threading.Thread(target=self._charger_modeles, daemon=True).start()
         self.after(40, self._lire_file)
         self.after(120, self._animer)
@@ -99,6 +104,16 @@ class VueClassinus(ttk.Frame):
         self._btn_lire = ttk.Button(barre, style=STYLE_BOUTON_LARGE, command=self._lire_ou_arreter)
         self._btn_lire.grid(row=0, column=2, sticky="w")
         self._fenetre_historique = None
+        # Annonce d'une nouvelle version du plugin : cachee tant qu'il n'y a rien a dire.
+        self._bandeau_maj = tk.Frame(haut)
+        self._bandeau_maj.columnconfigure(0, weight=1)
+        self._bandeau_maj.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(6, 0))
+        self._bandeau_maj.grid_remove()
+        self._lbl_maj = tk.Label(self._bandeau_maj, text="", justify="left", anchor="w", padx=6, pady=4, font=police_petite)
+        self._lbl_maj.grid(row=0, column=0, sticky="ew")
+        self._btn_fermer_maj = ttk.Button(self._bandeau_maj, text=t("maj_fermer"), style=STYLE_BOUTON, command=self._fermer_bandeau_maj)
+        self._btn_fermer_maj.grid(row=0, column=1, sticky="ne", padx=4, pady=3)
+        self._bandeau_maj.bind("<Configure>", self._ajuster_bandeau_maj)
 
         zone = ttk.Frame(self)
         zone.grid(row=1, column=0, sticky="nsew", padx=6)
@@ -298,6 +313,60 @@ class VueClassinus(ttk.Frame):
         else:
             self._lbl_statut.configure(text="")
         self.after(120, self._animer)
+
+    # ---------- mise a jour du plugin ----------
+    def _verifier_mise_a_jour(self):
+        """Annonce tout de suite une version deja connue, puis interroge PyPI en arriere-plan si c'est l'heure."""
+        deja_connue = mise_a_jour.version_a_proposer()
+        if deja_connue:
+            self._afficher_bandeau_maj(deja_connue)
+        if not mise_a_jour.verification_due():
+            return
+
+        def tache():
+            trouvee = mise_a_jour.interroger()
+            if trouvee:
+                self._file.put(("maj_version", trouvee))
+
+        threading.Thread(target=tache, daemon=True).start()
+
+    def _afficher_bandeau_maj(self, version):
+        if version == self._version_maj:
+            return
+        self._version_maj = version
+        self._lbl_maj.configure(text=t("maj_disponible") % version)
+        self._bandeau_maj.grid()
+        self._fondu_bandeau_maj(True)
+
+    def _fermer_bandeau_maj(self):
+        mise_a_jour.ignorer(self._version_maj)
+        self._fondu_bandeau_maj(False)
+
+    def _ajuster_bandeau_maj(self, evt):
+        self._lbl_maj.configure(wraplength=max(80, evt.width - self._btn_fermer_maj.winfo_reqwidth() - 24))
+
+    def _fondu_bandeau_maj(self, apparition):
+        """Melange peu a peu le bandeau avec le fond du panneau (jamais d'affichage brut)."""
+        if self._fondu_maj is not None:
+            self.after_cancel(self._fondu_maj)
+            self._fondu_maj = None
+        modele = self._historique_txt
+        texte = modele.cget("foreground")
+        ratio_fond = 0.10 if couleurs.est_sombre(modele) else 0.06
+
+        def etape(i):
+            avancement = i / ETAPES_FONDU if apparition else 1 - i / ETAPES_FONDU
+            fond = couleurs.vers(modele, texte, ratio_fond * avancement)
+            self._bandeau_maj.configure(background=fond)
+            self._lbl_maj.configure(background=fond, foreground=couleurs.vers(modele, texte, avancement))
+            if i < ETAPES_FONDU:
+                self._fondu_maj = self.after(PAS_FONDU_MS, etape, i + 1)
+                return
+            self._fondu_maj = None
+            if not apparition:
+                self._bandeau_maj.grid_remove()
+
+        etape(0)
 
     # ---------- connexion ----------
     def _basculer_connexion(self):
@@ -744,6 +813,11 @@ class VueClassinus(ttk.Frame):
                     self.after(DELAI_RENDU_MS, self._rendu_progressif)
         elif kind == "lecture_finie":
             self._maj_boutons()
+        elif kind == "maj_version":
+            mise_a_jour.retenir(valeur)
+            annonce = mise_a_jour.version_a_proposer(valeur)
+            if annonce:
+                self._afficher_bandeau_maj(annonce)
         elif kind == "dictee_texte":
             self._dictee_transcrit = False
             self._maj_boutons()

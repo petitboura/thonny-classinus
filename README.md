@@ -71,3 +71,18 @@ proposes sont dans `defauts.json` (`extensions_texte`, `extensions_navigateur`, 
 les adresses reconnues viennent des reglages (`backend_url`, `supabase_url`, `site_url`). Un lien vers
 une page du site Classinus s'ouvre dans le navigateur avec la fenetre de confirmation habituelle,
 qui annonce « Classinus ».
+
+Mises a jour : Thonny ne previent pas quand un plugin a une nouvelle version, c'est donc le plugin qui le
+fait (`mise_a_jour.py`). Au demarrage, il interroge PyPI dans un fil a part (adresse et intervalle dans
+`defauts.json` : `mise_a_jour_url`, `mise_a_jour_intervalle_heures`, 24 h par defaut) et affiche un bandeau
+en haut du panneau si une version plus recente existe. Le bandeau se ferme avec "Fermer" et ne reparait pas
+pour cette version, une version encore plus recente le fait reparaitre. Hors ligne ou en cas de reponse
+inattendue, rien ne s'affiche. Seules les versions deja installees avec cette fonction peuvent l'utiliser :
+elle n'existe pas dans les versions publiees avant elle.
+
+Langues : chaque langue est un fichier du dossier `thonnycontrib/classinus/langues/` (`fr.py`, `en.py`) avec
+`NOM` et `TEXTES`. Tout texte visible passe par `t("cle")` et existe dans toutes les langues, jamais dans une
+seule. Pour ajouter une langue : copier `en.py` en `<code>.py` (par exemple `ar.py`), changer `NOM`, traduire
+les valeurs sans toucher aux cles ni aux `%s`. La langue est decouverte toute seule (reglage "auto" ou son code
+dans Outils > Options > Classinus). Le test `python -m unittest discover tests` echoue si une cle manque dans une
+langue, si un texte est vide, si les `%s` different, ou si le code appelle une cle qui n'existe pas.
