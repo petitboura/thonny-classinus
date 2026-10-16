@@ -59,6 +59,7 @@ class VueClassinus(ttk.Frame):
         self._texte_pieces = ""
         self._en_attente = {}  # choix de la conversation pas encore enregistres sur le serveur
         self._lecteur = Lecteur()
+        self._lecteur.prechauffer()
         self._bas_visible = False
         self._dictee = Dictee()
         self._dictee_transcrit = False
@@ -457,7 +458,7 @@ class VueClassinus(ttk.Frame):
 
     def _sur_destruction(self, evt):
         if evt.widget is self:
-            self._lecteur.arreter()
+            self._lecteur.fermer()
             self._dictee.arreter()
 
     # ---------- dictee ----------
