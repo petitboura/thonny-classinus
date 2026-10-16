@@ -8,10 +8,11 @@ import tkinter.font as tkfont
 import webbrowser
 from tkinter import filedialog, messagebox, ttk
 
-from . import adresses, connexion, contexte, conversation, editeur, fichier_classinus, marque, mise_en_forme, parametres_conversation, pieces_jointes
+from . import adresses, connexion, contexte, conversation, editeur, fichier_classinus, lecteur, marque, mise_en_forme, parametres_conversation, pieces_jointes
 from .fenetre_historique import FenetreHistorique
 from .erreurs import ErreurClassinus
 from .flux import EchangeEnCours
+from .lecteur import Lecteur
 from .menus import BoutonModele, BoutonReglages
 from .textes import t
 
@@ -54,6 +55,9 @@ class VueClassinus(ttk.Frame):
         self._pieces = []
         self._texte_pieces = ""
         self._en_attente = {}  # choix de la conversation pas encore enregistres sur le serveur
+        self._lecteur = Lecteur()
+        self._bas_visible = False
+        self.bind("<Destroy>", lambda evt: self._lecteur.arreter() if evt.widget is self else None)
         self._construire()
         self._maj_etat_connexion()
         threading.Thread(target=self._charger_modeles, daemon=True).start()
@@ -87,7 +91,9 @@ class VueClassinus(ttk.Frame):
         self._btn_modele.grid(row=0, column=0, sticky="w", padx=(0, 4))
         self._btn_modele.grid_remove()  # visible seulement quand le serveur propose des modeles
         self._btn_historique = ttk.Button(barre, style=STYLE_BOUTON_LARGE, command=self._ouvrir_historique)
-        self._btn_historique.grid(row=0, column=1, sticky="w")
+        self._btn_historique.grid(row=0, column=1, sticky="w", padx=(0, 4))
+        self._btn_lire = ttk.Button(barre, style=STYLE_BOUTON_LARGE, command=self._lire_ou_arreter)
+        self._btn_lire.grid(row=0, column=2, sticky="w")
         self._fenetre_historique = None
 
         zone = ttk.Frame(self)
@@ -95,10 +101,13 @@ class VueClassinus(ttk.Frame):
         zone.columnconfigure(0, weight=1)
         zone.rowconfigure(0, weight=1)
         self._marque = marque.creer_image(self)
+        # Créé avant le texte pour exister quand le texte appelle _defiler_y ; remonté au premier plan à l'affichage.
+        self._btn_bas = ttk.Button(zone, text="\u2193", style=STYLE_BOUTON, width=2, command=self._aller_en_bas)
         self._historique_txt = tk.Text(zone, wrap="word", state="disabled", height=10, width=36, borderwidth=0, padx=6, pady=6)
         defil = ttk.Scrollbar(zone, command=self._historique_txt.yview)
+        self._defil_y = defil
         self._defil_x = ttk.Scrollbar(zone, orient="horizontal", command=self._historique_txt.xview)
-        self._historique_txt.configure(yscrollcommand=defil.set, xscrollcommand=self._defiler_x)
+        self._historique_txt.configure(yscrollcommand=self._defiler_y, xscrollcommand=self._defiler_x)
         self._historique_txt.grid(row=0, column=0, sticky="nsew")
         defil.grid(row=0, column=1, sticky="ns")
         mise_en_forme.preparer_tags(
@@ -152,6 +161,22 @@ class VueClassinus(ttk.Frame):
         self._saisie.bind("<FocusOut>", self._saisie_perd_focus)
         self._afficher_placeholder()
         self._maj_boutons()
+
+    def _defiler_y(self, debut, fin):
+        """Barre de défilement verticale, et bouton « aller en bas » : visible seulement quand on a remonté dans la conversation."""
+        self._defil_y.set(debut, fin)
+        doit_montrer = float(fin) < 0.99
+        if doit_montrer == self._bas_visible:
+            return
+        self._bas_visible = doit_montrer
+        if doit_montrer:
+            self._btn_bas.place(in_=self._historique_txt, relx=1.0, rely=1.0, x=-8, y=-8, anchor="se")
+            self._btn_bas.lift()
+        else:
+            self._btn_bas.place_forget()
+
+    def _aller_en_bas(self):
+        self._historique_txt.yview_moveto(1.0)
 
     def _defiler_x(self, debut, fin):
         """Barre de defilement horizontale : visible seulement quand un tableau depasse le panneau."""
@@ -235,6 +260,7 @@ class VueClassinus(ttk.Frame):
             state="disabled" if self._occupe else "normal",
         )
         self._btn_historique.configure(text=t("historique"), state=libre)
+        self._btn_lire.configure(text=t("arreter_lecture") if self._lecteur.en_cours() else t("lire"), state=libre)
         self._btn_reglages.activer(not self._occupe)
         self._btn_modele.activer(not self._occupe)
         self.after_idle(self._reorganiser_actions)
@@ -332,6 +358,7 @@ class VueClassinus(ttk.Frame):
         self._lancer_echange(t("question_selection"), ctx.seulement_selection(), False, t("expliquer_selection"))
 
     def _nouvelle_conversation(self):
+        self._lecteur.arreter()
         self._historique = []
         self._question = ""
         self._contexte_envoye = None
@@ -343,6 +370,22 @@ class VueClassinus(ttk.Frame):
         self._en_attente = {}
         self._btn_reglages.nouvelle_conversation()
         mise_en_forme.vider(self._historique_txt)
+
+    def _lire_ou_arreter(self):
+        """Lit la dernière réponse avec la voix de l'ordinateur ; un second clic arrête, un nouveau clic reprend au début."""
+        if self._lecteur.en_cours():
+            self._lecteur.arreter()
+            self._maj_boutons()
+            return
+        derniere = next((m["content"] for m in reversed(self._historique) if m["role"] == "assistant"), "")
+        texte = lecteur.texte_a_lire(derniere)
+        if not texte:
+            self._ecrire(t("aucune_reponse_a_lire") + "\n", "info")
+            return
+        if not self._lecteur.lire(texte, lambda _processus: self._file.put(("lecture_finie", None))):
+            self._ecrire(t("lecture_indisponible") + "\n", "erreur")
+            return
+        self._maj_boutons()
 
     def _ouvrir_historique(self):
         if self._occupe:
@@ -387,6 +430,7 @@ class VueClassinus(ttk.Frame):
         chemins = list(self._pieces)
         self._pieces = []
         self._afficher_pieces()
+        self._lecteur.arreter()
         self._question = message
         self._contexte_envoye = ctx
         try:
@@ -626,6 +670,8 @@ class VueClassinus(ttk.Frame):
                 if not self._rendu_prevu:
                     self._rendu_prevu = True
                     self.after(DELAI_RENDU_MS, self._rendu_progressif)
+        elif kind == "lecture_finie":
+            self._maj_boutons()
         elif kind == "statut":
             self._statut_outil = valeur
         elif kind == "statut_fin":

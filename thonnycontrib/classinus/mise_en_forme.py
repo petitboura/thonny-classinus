@@ -10,7 +10,10 @@ import tkinter.font as tkfont
 
 from . import adresses, coloration, couleurs, tableaux
 
+_GRAS_ITALIQUE = re.compile(r"\*\*\*(.+?)\*\*\*")
 _GRAS = re.compile(r"\*\*(.+?)\*\*")
+# Un seul astérisque de chaque côté, collé au texte : « 2 * 3 * 4 » et « 2*3*4 » ne deviennent jamais de l'italique.
+_ITALIQUE = re.compile(r"(?<![\*\w])\*(?![\s\*])([^*\n]+?)(?<![\s\*])\*(?!\*)")
 _CODE = re.compile(r"`([^`\n]+)`")
 _LIEN = re.compile(r"\[([^\]\n]+)\]\((https?://[^\s)]+)\)")
 _ADRESSE = re.compile(r"https?://[^\s<>\"')\]]+")
@@ -19,7 +22,7 @@ _LIGNE = re.compile(r"\b(?:lignes?|lines?)\s+(\d+)", re.IGNORECASE)
 _LIGNES_CITEES = re.compile(r"\b(?:lignes?|lines?)\s+(\d+)(?:\s*(-|–|à|to|et|and)\s*(\d+))?", re.IGNORECASE)
 _BLOC_CODE = re.compile(r"```.*?(?:```|\Z)", re.DOTALL)
 _MAX_SUITE_LIGNES = 40
-_MOTIFS = ((_GRAS, "gras"), (_CODE, "code"), (_LIEN, "lien"), (_ADRESSE, "adresse"), (_LIGNE, "ligne"))
+_MOTIFS = ((_GRAS_ITALIQUE, "gras_italique"), (_GRAS, "gras"), (_ITALIQUE, "italique"), (_CODE, "code"), (_LIEN, "lien"), (_ADRESSE, "adresse"), (_LIGNE, "ligne"))
 _PONCTUATION_FINALE = ".,;:!?"
 _LONGUEUR_ADRESSE_AFFICHEE = 50
 _MARGE_BULLE = 36
@@ -34,7 +37,11 @@ def preparer_tags(w, ouvrir_lien=None, aller_ligne=None, curseur_lien="hand2"):
     mono = tkfont.nametofont("TkFixedFont")
     mono_gras = mono.copy()
     mono_gras.configure(weight="bold")
-    w._polices_classinus = (gras, titre, mono_gras)
+    italique = base.copy()
+    italique.configure(slant="italic")
+    gras_italique = base.copy()
+    gras_italique.configure(weight="bold", slant="italic")
+    w._polices_classinus = (gras, titre, mono_gras, italique, gras_italique)
     w._actions_classinus = {}
     w._compteur_classinus = 0
 
@@ -46,6 +53,9 @@ def preparer_tags(w, ouvrir_lien=None, aller_ligne=None, curseur_lien="hand2"):
     w.tag_configure("erreur", foreground=couleurs.erreur(w))
 
     w.tag_configure("gras", font=gras)
+    w.tag_configure("italique", font=italique)
+    # Créé après « gras » et « italique » : il prend le dessus quand les deux se cumulent.
+    w.tag_configure("gras_italique", font=gras_italique)
     w.tag_configure("titre", font=titre)
     w.tag_configure("code", font=mono, background=couleurs.nuance(w))
     # Tableaux : jamais coupes a la largeur du panneau (la barre de defilement horizontale apparait si besoin).
@@ -180,8 +190,12 @@ def _inserer_texte(w, texte, tags):
             continue
         _inserer_brut(w, texte[place:debut], tags)
         place = m.end()
-        if genre == "gras":
-            _inserer_texte(w, m.group(1), tags + ("gras",))
+        if genre == "gras_italique":
+            _inserer_texte(w, m.group(1), _avec_style(_avec_style(tags, "gras"), "italique"))
+        elif genre == "gras":
+            _inserer_texte(w, m.group(1), _avec_style(tags, "gras"))
+        elif genre == "italique":
+            _inserer_texte(w, m.group(1), _avec_style(tags, "italique"))
         elif genre == "code":
             _inserer_brut(w, m.group(1), tags + ("code",))
         elif genre == "lien":
@@ -196,6 +210,14 @@ def _inserer_texte(w, texte, tags):
         else:
             _inserer_action(w, m.group(0), ("ligne", int(m.group(1))), tags)
     _inserer_brut(w, texte[place:], tags)
+
+
+def _avec_style(tags, style):
+    """Ajoute « gras » ou « italique » ; les deux ensemble reçoivent aussi « gras_italique »."""
+    tags = tags + (style,)
+    if "gras" in tags and "italique" in tags and "gras_italique" not in tags:
+        tags += ("gras_italique",)
+    return tags
 
 
 def _inserer_lien(w, texte, adresse, tags, adresse_nue):
