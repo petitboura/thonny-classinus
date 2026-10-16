@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "thonny-classinus"
-version = "0.6.2"
+version = "0.6.3"
 description = "Code with GPT, Claude, Gemini, DeepSeek and Grok models, with settings, in a panel next to your code."
 readme = "README.md"
 requires-python = ">=3.8"
