@@ -1,4 +1,4 @@
-# classinus
+# thonny-classinus
 
 Plugin Thonny qui ajoute un panneau Classinus a droite de l'editeur.
 

@@ -3,8 +3,8 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "classinus"
-version = "0.6.1"
+name = "thonny-classinus"
+version = "0.6.2"
 description = "Code avec les modeles GPT, Claude, Gemini, DeepSeek et Grok, avec des reglages, dans un panneau a cote de ton code."
 readme = "README.md"
 requires-python = ">=3.8"

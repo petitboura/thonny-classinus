@@ -1,4 +1,4 @@
-"""classinus : Classinus dans un panneau de Thonny."""
+"""thonny-classinus : Classinus dans un panneau de Thonny."""
 
 from thonny import get_workbench
 
