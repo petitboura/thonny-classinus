@@ -472,7 +472,7 @@ class VueClassinus(ttk.Frame):
         try:
             self._dictee.demarrer()
         except ErreurClassinus as e:
-            self._ecrire(t(e.cle_texte) + "\n", "erreur")
+            self._traiter("erreur", (e.cle_texte, e.detail))
             return
         self._arret_dictee_auto = self.after(dictee.DUREE_MAX_SECONDES * 1000, self._arreter_dictee)
         self._maj_boutons()

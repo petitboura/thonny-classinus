@@ -7,6 +7,7 @@ qu'un seul fichier audio. Le serveur transcrit en francais.
 
 import io
 import json
+import sys
 import threading
 import urllib.error
 import urllib.request
@@ -18,6 +19,12 @@ from .erreurs import ErreurClassinus
 FREQUENCE = 16000  # 16 000 mesures par seconde, mono, 16 bits : la qualite attendue par la transcription
 DUREE_MAX_SECONDES = 300  # 9,6 Mo d'audio, bien sous la limite de 20 Mo du serveur
 DELAI_ENVOI = 120
+
+
+
+def _detail(erreur):
+    """La nature de la panne en une ligne courte, affichee a la suite du message."""
+    return ("%s: %s" % (type(erreur).__name__, erreur))[:160]
 
 
 class Dictee:
@@ -33,8 +40,11 @@ class Dictee:
         """Ouvre le micro. Leve ErreurClassinus si la bibliotheque ou le micro manque."""
         try:
             import sounddevice
-        except Exception:  # bibliotheque absente, ou composant systeme manquant (PortAudio sous Linux)
-            raise ErreurClassinus("err_dictee_bibliotheque")
+        except ImportError as e:  # la bibliotheque (ou une de ses dependances) n'est pas installee dans Thonny
+            raise ErreurClassinus("err_dictee_bibliotheque_absente", _detail(e))
+        except Exception as e:  # la bibliotheque est la mais son composant audio (PortAudio) ne se charge pas
+            cle = "err_dictee_composant_linux" if sys.platform.startswith("linux") else "err_dictee_composant"
+            raise ErreurClassinus(cle, _detail(e))
         self._morceaux = []
 
         def recevoir(donnees, _images, _temps, _etat):
@@ -44,8 +54,8 @@ class Dictee:
         try:
             flux = sounddevice.RawInputStream(samplerate=FREQUENCE, channels=1, dtype="int16", callback=recevoir)
             flux.start()
-        except Exception:
-            raise ErreurClassinus("err_dictee_micro")
+        except Exception as e:
+            raise ErreurClassinus("err_dictee_micro", _detail(e))
         self._flux = flux
 
     def arreter(self):
