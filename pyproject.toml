@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "thonny-classinus"
 version = "0.6.2"
-description = "Code avec les modeles GPT, Claude, Gemini, DeepSeek et Grok, avec des reglages, dans un panneau a cote de ton code."
+description = "Code with GPT, Claude, Gemini, DeepSeek and Grok models, with settings, in a panel next to your code."
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = ["thonny>=5.0.0", "keyring>=24", "sounddevice>=0.4"]
