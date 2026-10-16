@@ -12,7 +12,7 @@ def version_installee():
     try:
         from importlib.metadata import version
 
-        return version("thonny-classinus")
+        return version("classinus")
     except Exception:
         return "inconnue"
 
