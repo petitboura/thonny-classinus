@@ -1,88 +1,95 @@
 # thonny-classinus
 
-Plugin Thonny qui ajoute un panneau Classinus a droite de l'editeur.
+Thonny plugin that adds a Classinus panel to the right of the editor.
 
-Etape 1 : connexion au compte Classinus (via le navigateur), puis une question
-tapee dans le panneau et une reponse qui s'affiche au fil de l'eau.
+Step 1: sign in to your Classinus account (through the browser), then type a
+question in the panel and the answer appears as it is written.
 
-Etape 2 : deux boutons, "Envoyer mon code" (fichier ouvert, partie selectionnee,
-derniere erreur et sortie du programme) et "Expliquer cette erreur". Rien ne
-part sans un clic de l'eleve. Le code est ajoute au message envoye a Classinus ;
-les tailles maximales sont dans `defauts.json` (`max_code`, `max_sortie`).
+Step 2: two buttons, "Send my code" (the open file, the selected part, the last
+error and the program output) and "Explain this error". Nothing is sent without
+a click from the student. The code is added to the message sent to Classinus;
+the maximum sizes are in `defauts.json` (`max_code`, `max_sortie`).
 
-Les consignes propres a Thonny (ou est Classinus, ce que font les boutons, comment
-repondre : texte simple, code Python dans un bloc python) ne sont plus dans le
-plugin : le serveur les ajoute lui-meme (fichier `core/consignes_thonny.txt` du
-backend) quand le plugin se declare client Thonny. Le plugin envoie seulement
-`client` et le nom de ses boutons dans la langue de l'eleve (`libelles_client`).
-Modifier ce fichier du serveur change le comportement de Classinus dans Thonny.
+The Thonny-specific instructions (where Classinus is, what the buttons do, how to
+answer: plain text, Python code in a python block) are no longer in the plugin:
+the server adds them itself (file `core/consignes_thonny.txt` of the backend) when
+the plugin declares itself as a Thonny client. The plugin only sends `client` and
+the names of its buttons in the student's language (`libelles_client`). Editing
+that server file changes how Classinus behaves in Thonny.
 
-Etape 3 : sous chaque bloc de code de la reponse, "Copier", "Inserer" (l'eleve
-valide, puis Ctrl+Z annule) et "Nouvel onglet" (le code s'ouvre dans un onglet
-non enregistre). Le lancement du script reste le bouton vert de Thonny.
+Step 3: under each code block of the answer, "Copy", "Insert" (the student
+confirms, then Ctrl+Z undoes it) and "New tab" (the code opens in an unsaved tab).
+Running the script stays with Thonny's green button.
 
-Boutons du panneau : "Envoyer mon code", "Corriger mon code", "Expliquer cette
-erreur", "Expliquer ma selection" (envoie seulement la partie selectionnee),
-"Nouvelle conversation" (efface la discussion). Si l'eleve est dans le pas a pas
-du debogueur, la ligne ou il en est est envoyee avec le code.
+Panel buttons: "Send my code", "Fix my code", "Explain this error", "Explain my
+selection" (sends only the selected part), "New conversation" (clears the
+discussion). If the student is stepping through the debugger, the line they are
+on is sent with the code.
 
-Affichage : la question de l'eleve a droite, la reponse a gauche. Les couleurs
-du code sont celles du theme de Thonny, les fonds suivent son theme clair ou
-sombre. Les liens `[texte](https://...)` sont cliquables, le vrai site est
-affiche a cote du texte et une fenetre de confirmation l'annonce avant
-d'ouvrir le navigateur (seulement http et https). Un passage "ligne 7" dans
-une reponse est cliquable et surligne la ligne dans l'editeur.
+Display: the student's question on the right, the answer on the left. The code
+colors are those of Thonny's theme, and the backgrounds follow its light or dark
+theme. Links like `[text](https://...)` are clickable, the real site is shown
+next to the text and a confirmation window announces it before opening the
+browser (http and https only). A "line 7" mention in an answer is clickable and
+highlights that line in the editor.
 
-Les adresses (serveur Classinus, service de connexion) ne sont jamais ecrites
-dans le code : elles viennent de `defauts.json`, de la page de reglages
-Classinus de Thonny, ou des variables d'environnement `CLASSINUS_BACKEND_URL`
-et `CLASSINUS_SUPABASE_URL`.
+Addresses (Classinus server, sign-in service) are never written in the code: they
+come from `defauts.json`, from Thonny's Classinus settings page, or from the
+environment variables `CLASSINUS_BACKEND_URL` and `CLASSINUS_SUPABASE_URL`.
 
-Etape 5 : longueur de reponse (courte, moyenne, longue) et choix du modele quand
-l'agent en propose, memes choix que le site. Bouton "Joindre un fichier" (photo
-5 Mo max, document 15 Mo max, 5 fichiers) : envoi au serveur au moment de
-Envoyer (`pieces_jointes.py`). Chaque conversation du panneau a son identifiant et
-ses messages s'enchainent dans le meme fil de l'historique du site
+Step 5: answer length (short, medium, long) and model choice when the agent offers
+one, the same choices as the website. "Attach a file" button (photo 5 MB max,
+document 15 MB max, 5 files): sent to the server when you press Send
+(`pieces_jointes.py`). Each conversation in the panel has its own identifier and
+its messages chain into the same thread of the website history
 (`conversation.py`).
 
-Tableaux : un tableau Markdown dans la reponse s'affiche en vrai tableau aligne
-(`tableaux.py`), avec une barre de defilement horizontale si le panneau est trop
-etroit. Les consignes Thonny du serveur autorisent les tableaux.
+Tables: a Markdown table in the answer is shown as a real aligned table
+(`tableaux.py`), with a horizontal scroll bar if the panel is too narrow. The
+server's Thonny instructions allow tables.
 
-Boutons du bas et du haut du panneau : "Joindre un fichier" (sur sa ligne, texte entier) et
-"Reglages" (longueur de reponse, effort, mode pedagogique, modes ressources, comme sur le site).
-Le bouton "Modele" est en haut du panneau, avec les memes regles que sur le site : il n'apparait
-que si le serveur propose des modeles, la liste est groupee par fournisseur, il n'y a pas de mode
-"Auto". Le modele actif est le dernier choix de l'eleve s'il est encore propose, sinon DeepSeek Flash
-(`modele_par_defaut` dans `defauts.json`). Les icones des fournisseurs sont les vrais logos (`logos_data.py`, bibliotheque libre
-`@lobehub/icons-static-svg`, licence MIT), l'icone "Auto" est dessinee par le plugin (`icones.py`). Le mode pedagogique et les modes ressources sont enregistres
-sur le serveur pour la conversation en cours (`parametres_conversation.py`), comme sur le site.
+Buttons at the bottom and top of the panel: "Attach a file" (on its own line,
+full text) and "Settings" (answer length, effort, teaching mode, resource modes,
+as on the website). The "Model" button is at the top of the panel, with the same
+rules as the website: it only appears if the server offers models, the list is
+grouped by provider, and there is no "Auto" mode. The active model is the
+student's last choice if it is still offered, otherwise DeepSeek Flash
+(`modele_par_defaut` in `defauts.json`). Provider icons are the real logos
+(`logos_data.py`, free library `@lobehub/icons-static-svg`, MIT license), the
+"Auto" icon is drawn by the plugin (`icones.py`). The teaching mode and the
+resource modes are saved on the server for the current conversation
+(`parametres_conversation.py`), as on the website.
 
-Lignes citees : quand la reponse cite des lignes du code envoye (« ligne 7 », « lignes 3 a 5 »),
-elles sont surlignees toutes seules dans l'editeur a la fin de la reponse, sans bouger le curseur
-ni le texte, et seulement si le fichier ouvert est encore exactement celui que l'eleve a envoye
-(`editeur.surligner_lignes_citees`). Dans le panneau, « ligne N » reste cliquable et ressort en jaune.
+Quoted lines: when the answer quotes lines of the code that was sent ("line 7",
+"lines 3 to 5"), they are highlighted on their own in the editor at the end of the
+answer, without moving the cursor or the text, and only if the open file is still
+exactly the one the student sent (`editeur.surligner_lignes_citees`). In the
+panel, "line N" stays clickable and shows in yellow.
 
-Fichiers et pages de Classinus : un lien qui pointe vers un fichier servi par Classinus (serveur
-ou stockage) n'affiche jamais l'adresse brute. Il est annonce « (Classinus) » et ouvre la fenetre
-« Fichier Classinus » (`fichier_classinus.py`) : ouvrir dans Thonny (texte et code, nouvel onglet non
-enregistre), enregistrer sur l'ordinateur, ouvrir dans le navigateur (PDF et images). Les types
-proposes sont dans `defauts.json` (`extensions_texte`, `extensions_navigateur`, `taille_max_texte`),
-les adresses reconnues viennent des reglages (`backend_url`, `supabase_url`, `site_url`). Un lien vers
-une page du site Classinus s'ouvre dans le navigateur avec la fenetre de confirmation habituelle,
-qui annonce « Classinus ».
+Classinus files and pages: a link that points to a file served by Classinus
+(server or storage) never shows the raw address. It is announced as "(Classinus)"
+and opens the "Classinus file" window (`fichier_classinus.py`): open in Thonny
+(text and code, new unsaved tab), save to the computer, open in the browser (PDFs
+and images). The offered types are in `defauts.json` (`extensions_texte`,
+`extensions_navigateur`, `taille_max_texte`), and the recognized addresses come
+from the settings (`backend_url`, `supabase_url`, `site_url`). A link to a page of
+the Classinus website opens in the browser with the usual confirmation window,
+which announces "Classinus".
 
-Mises a jour : Thonny ne previent pas quand un plugin a une nouvelle version, c'est donc le plugin qui le
-fait (`mise_a_jour.py`). Au demarrage, il interroge PyPI dans un fil a part (adresse et intervalle dans
-`defauts.json` : `mise_a_jour_url`, `mise_a_jour_intervalle_heures`, 24 h par defaut) et affiche un bandeau
-en haut du panneau si une version plus recente existe. Le bandeau se ferme avec "Fermer" et ne reparait pas
-pour cette version, une version encore plus recente le fait reparaitre. Hors ligne ou en cas de reponse
-inattendue, rien ne s'affiche. Seules les versions deja installees avec cette fonction peuvent l'utiliser :
-elle n'existe pas dans les versions publiees avant elle.
+Updates: Thonny does not warn when a plugin has a new version, so the plugin does
+it itself (`mise_a_jour.py`). At startup, it asks PyPI in a separate thread
+(address and interval in `defauts.json`: `mise_a_jour_url`,
+`mise_a_jour_intervalle_heures`, 24 h by default) and shows a banner at the top of
+the panel if a newer version exists. The banner closes with "Close" and does not
+come back for that version; an even newer version makes it reappear. Offline, or
+on an unexpected answer, nothing is shown. Only versions already installed with
+this feature can use it: it does not exist in versions published before it.
 
-Langues : chaque langue est un fichier du dossier `thonnycontrib/classinus/langues/` (`fr.py`, `en.py`) avec
-`NOM` et `TEXTES`. Tout texte visible passe par `t("cle")` et existe dans toutes les langues, jamais dans une
-seule. Pour ajouter une langue : copier `en.py` en `<code>.py` (par exemple `ar.py`), changer `NOM`, traduire
-les valeurs sans toucher aux cles ni aux `%s`. La langue est decouverte toute seule (reglage "auto" ou son code
-dans Outils > Options > Classinus). Le test `python -m unittest discover tests` echoue si une cle manque dans une
-langue, si un texte est vide, si les `%s` different, ou si le code appelle une cle qui n'existe pas.
+Languages: each language is a file in the `thonnycontrib/classinus/langues/`
+folder (`fr.py`, `en.py`) with `NOM` and `TEXTES`. Every visible text goes through
+`t("key")` and exists in all languages, never in just one. To add a language: copy
+`en.py` to `<code>.py` (for example `ar.py`), change `NOM`, translate the values
+without touching the keys or the `%s`. The language is discovered automatically
+("auto" setting, or its code in Tools > Options > Classinus). The test
+`python -m unittest discover tests` fails if a key is missing in a language, if a
+text is empty, if the `%s` differ, or if the code calls a key that does not exist.
