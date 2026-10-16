@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "classinus"
 version = "0.6.1"
-description = "Code avec les modeles GPT, Claude, DeepSeek et Grok, avec des reglages, dans un panneau a cote de ton code."
+description = "Code avec les modeles GPT, Claude, Gemini, DeepSeek et Grok, avec des reglages, dans un panneau a cote de ton code."
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = ["thonny>=5.0.0", "keyring>=24", "sounddevice>=0.4"]
